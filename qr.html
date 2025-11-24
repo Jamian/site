@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>Jamie West | Security Warning</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        .screen-shake {
+            animation: quick-shake 0.1s ease-in-out; 
+        }
+
+        @keyframes quick-shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            25% { transform: translate(-1px, 0px) rotate(0.5deg); }
+            50% { transform: translate(1px, -1px) rotate(-0.5deg); }
+            75% { transform: translate(-1px, 1px) rotate(0.5deg); }
+            100% { transform: translate(1px, 1px) rotate(0deg); }
+        }
+        
+        :root {
+            --light-bg: #EAEAEA;
+            --dark-fg: #0A0A0A;
+            --gray-text: #555;
+            --highlight-red: #D10000; 
+            --light-gray-border: #888;
+
+            --alert-blue-bg: #00008B;
+            --alert-blue-border: #0000CD;
+            --alert-blue-text: #FFFFFF;
+
+            --alert-green-bg: #006400;
+            --alert-green-border: #008000;
+            --alert-green-text: #FFFFFF;
+
+            --alert-purple-bg: #4B0082;
+            --alert-purple-border: #8A2BE2;
+            --alert-purple-text: #FFFFFF;
+
+            --alert-yellow-bg: #DAA520;
+            --alert-yellow-border: #FFD700;
+            --alert-yellow-text: #000000;
+
+            --alert-red-bg: #8B0000;
+            --alert-red-border: #DC143C;
+            --alert-red-text: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Space Mono', monospace; 
+            transition: color 0.3s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        body {
+            background-color: var(--light-bg); 
+            color: var(--dark-fg); 
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scare-flash {
+            background-color: var(--highlight-red) !important;
+            color: white !important;
+            border: 5px solid white !important;
+            box-shadow: 0 0 50px white;
+            transition: none !important;
+        }
+
+        .scare-flash * {
+            color: white !important;
+            transition: none !important;
+        }
+        
+        .fake-alert {
+            position: absolute; 
+            background-color: #f7f7f7;
+            border: 2px solid var(--highlight-red);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            width: 280px; 
+            text-align: left;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            z-index: 1000;
+            
+            opacity: 0;
+            transform: scale(0.9); 
+            transition: all 0.5s ease-out;
+            pointer-events: none; 
+        }
+        
+        .fake-alert.active {
+            opacity: 1;
+            transform: scale(1); 
+            pointer-events: auto; 
+        }
+
+        .fake-alert.hide {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none; 
+        }
+
+        .alert-title {
+            font-weight: 700;
+            color: var(--highlight-red);
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            line-height: 1;
+            color: inherit;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            pointer-events: auto; 
+        }
+
+        .close-btn:hover {
+            color: #FF0000;
+        }
+
+        .fake-alert.alert-theme-blue {
+            background-color: var(--alert-blue-bg);
+            border-color: var(--alert-blue-border);
+            color: var(--alert-blue-text);
+        }
+        .fake-alert.alert-theme-blue .alert-title {
+            color: var(--alert-blue-text);
+        }
+        .fake-alert.alert-theme-green {
+            background-color: var(--alert-green-bg);
+            border-color: var(--alert-green-border);
+            color: var(--alert-green-text);
+        }
+        .fake-alert.alert-theme-green .alert-title {
+            color: var(--alert-green-text);
+        }
+        .fake-alert.alert-theme-purple {
+            background-color: var(--alert-purple-bg);
+            border-color: var(--alert-purple-border);
+            color: var(--alert-purple-text);
+        }
+        .fake-alert.alert-theme-purple .alert-title {
+            color: var(--alert-purple-text);
+        }
+        .fake-alert.alert-theme-yellow {
+            background-color: var(--alert-yellow-bg);
+            border-color: var(--alert-yellow-border);
+            color: var(--alert-yellow-text);
+        }
+        .fake-alert.alert-theme-yellow .alert-title {
+            color: var(--alert-yellow-text);
+        }
+        .fake-alert.alert-theme-red {
+            background-color: var(--alert-red-bg);
+            border-color: var(--alert-red-border);
+            color: var(--alert-red-text);
+        }
+        .fake-alert.alert-theme-red .alert-title {
+            color: var(--alert-red-text);
+        }
+
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            position: relative; 
+            z-index: 10;
+            background-color: transparent; 
+        }
+
+        .mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 30px;
+            height: 30px;
+            background: none;
+            border: 1px solid var(--gray-text);
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 2px;
+            z-index: 20; 
+        }
+
+        .mode-toggle:hover {
+             border-color: var(--dark-fg);
+        }
+
+        .mode-toggle-icon {
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--dark-fg);
+            border-radius: 50%;
+        }
+
+        .icon {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 30px auto;
+            overflow: visible; 
+            z-index: 5;
+            
+            border: 2px solid var(--gray-text); 
+            border-radius: 4px;
+            padding: 10px;
+            animation: blink-alert 0.7s infinite alternate; 
+        }
+
+        @keyframes blink-alert {
+            0% { border-color: var(--highlight-red); box-shadow: 0 0 15px var(--highlight-red); }
+            50% { border-color: var(--gray-text); box-shadow: none; }
+            100% { border-color: var(--highlight-red); box-shadow: 0 0 15px var(--highlight-red); }
+        }
+
+        .icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--dark-fg); 
+            overflow: visible; 
+            animation: svg-flash-light 0.7s infinite alternate; 
+        }
+        
+        @keyframes svg-flash-light {
+            0% { stroke: var(--highlight-red); }
+            100% { stroke: var(--dark-fg); }
+        }
+        
+        .icon svg path, .icon svg polygon, .icon svg line {
+            stroke: inherit;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--dark-fg);
+            animation: text-flash 0.7s infinite alternate;
+        }
+        
+        @keyframes text-flash {
+            0% { color: var(--highlight-red); }
+            100% { color: var(--dark-fg); }
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            font-weight: 700;
+            color: var(--dark-fg);
+        }
+
+        p {
+            margin-bottom: 30px;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.8;
+            font-size: 0.95rem;
+        }
+        
+        .main-tagline {
+            font-weight: 700;
+            color: var(--highlight-red); 
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .intro-text {
+            color: var(--gray-text);
+            font-weight: 400;
+        }
+
+        .readout {
+            color: var(--gray-text);
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .readout strong {
+            color: var(--highlight-red);
+            font-weight: 700;
+        }
+
+
+        .links a {
+            display: inline-block;
+            margin: 0 10px;
+            text-decoration: none;
+            color: var(--dark-fg);
+            border: 1px solid var(--gray-text);
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+
+        .links a:hover {
+            background-color: var(--highlight-red);
+            color: var(--light-bg);
+            border-color: var(--highlight-red);
+        }
+
+        footer {
+            margin-top: 32px;
+            font-size: 0.8rem;
+            color: var(--gray-text);
+        }
+
+        .dark-mode {
+            background-color: var(--dark-fg);
+            color: var(--light-bg);
+        }
+
+        .dark-mode h2,
+        .dark-mode footer,
+        .dark-mode .intro-text {
+            color: var(--light-gray-border); 
+        }
+        
+        .dark-mode h2 {
+            color: var(--light-bg);
+        }
+        
+        .dark-mode .readout {
+            color: var(--light-gray-border);
+        }
+
+        .dark-mode .readout strong {
+            color: var(--highlight-red);
+        }
+
+        .dark-mode .main-tagline {
+            color: var(--highlight-red);
+        }
+
+        .dark-mode .mode-toggle {
+            border-color: var(--light-gray-border);
+        }
+
+        .dark-mode .mode-toggle:hover {
+             border-color: var(--light-bg);
+        }
+
+        .dark-mode .mode-toggle-icon {
+            border-color: var(--light-bg);
+        }
+        
+        .dark-mode .links a {
+            color: var(--light-bg);
+            border-color: var(--light-gray-border);
+        }
+        
+        .dark-mode .links a:hover {
+            background-color: var(--highlight-red); 
+            color: var(--dark-fg);
+            border-color: var(--highlight-red);
+        }
+
+        .dark-mode .icon {
+            animation: dark-blink-alert 0.7s infinite alternate;
+        }
+
+        @keyframes dark-blink-alert {
+            0% { border-color: var(--highlight-red); box-shadow: 0 0 15px var(--highlight-red); }
+            50% { border-color: var(--light-gray-border); box-shadow: none; }
+            100% { border-color: var(--highlight-red); box-shadow: 0 0 15px var(--highlight-red); }
+        }
+        
+        .dark-mode .icon svg {
+             animation: svg-flash-dark 0.7s infinite alternate;
+        }
+        
+        @keyframes svg-flash-dark {
+            0% { stroke: var(--highlight-red); }
+            100% { stroke: var(--light-bg); }
+        }
+
+        .dark-mode h1 {
+            animation: dark-text-flash 0.7s infinite alternate;
+        }
+
+        @keyframes dark-text-flash {
+            0% { color: var(--highlight-red); }
+            100% { color: var(--light-bg); }
+        }
+
+        @media (max-width: 500px) {
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.1rem; }
+            .icon { width: 100px; height: 100px; margin-bottom: 10px; }
+            .links a { margin: 5px 0; display: block; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="alert-1" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">SECURITY PROMPT:</span>
+        FILE INJECTION DETECTED. Execution started from unknown source.
+    </div>
+    <div id="alert-2" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">WARNING:</span>
+        Unauthorised access initiated. Data integrity check failed.
+    </div>
+    <div id="alert-3" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">SYSTEM OVERRIDE:</span>
+        Bypassing local security protocols. Data transmission beginning...
+    </div>
+    <div id="alert-4" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">ERROR 0x000FF:</span>
+        Memory leak detected. System resources critically low.
+    </div>
+    <div id="alert-5" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">CRITICAL ALERT:</span>
+        External connection established. Your IP address is now public.
+    </div>
+    <div id="alert-6" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">NOTIFICATION:</span>
+        System log files are being accessed. Your recent activity is being reviewed.
+    </div>
+    <div id="alert-7" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">PROCESS FAILED:</span>
+        Antivirus shield compromised. Vulnerability detected.
+    </div>
+    <div id="alert-8" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">RETICULATING SPLINES:</span>
+        Old Maxis games were the best, weren't they?
+    </div>
+    <div id="alert-9" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">VIRUS DETECTED:</span>
+        Your operating system integrity has been compromised. Seek immediate assistance.
+    </div>
+    <div id="alert-10" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">WARNING:</span>
+        Critical system files are being deleted. Do NOT shut down your computer.
+    </div>
+    <div id="alert-11" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">URGENT MESSAGE:</span>
+        All personal data is now publicly accessible. (Click to resolve issue)
+    </div>
+    <div id="alert-12" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">INSTALLATION ERROR:</span>
+        Malware payload deployment successful. Restart recommended.
+    </div>
+    <div id="alert-13" class="fake-alert">
+        <span class="close-btn">&times;</span>
+        <span class="alert-title">ADVISORY:</span>
+        Your financial information may be at risk. Review account statements immediately.
+    </div>
+
+    <button class="mode-toggle" aria-label="Toggle dark and light mode">
+        <div class="mode-toggle-icon"></div>
+    </button>
+    
+    <div class="container">
+        
+        <div class="icon"> 
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                 viewBox="0 0 24 24">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </div>
+
+        <h1>SECURITY WARNING</h1>
+        <h2>A QR CODE BROUGHT YOU HERE. WHAT IF IT WASN'T MINE?</h2>
+        
+        <p class="readout">
+            SYSTEM SCAN COMPLETE: 
+            OS: <strong><span id="os-detected">READING...</span></strong> | 
+            HISTORY COUNT: <strong><span id="history-length">READING...</span></strong> | 
+            TIMEZONE: <strong><span id="timezone-id">READING...</span></strong>
+        </p>
+
+        <p>
+            <span class="main-tagline">
+                Your device just executed an unknown command.
+            </span>
+            <span class="intro-text">
+                This page is harmless, but a **malicious QR code** could link to a phishing site, download malware, or execute dangerous commands without your permission.
+            </span>
+        </p>
+        
+        <p>
+            <span class="intro-text">
+                **Think before you scan:** Never open a QR code you find in an uncontrolled public space or from an untrusted source.
+            </span>
+        </p>
+
+        <div class="links">
+            <a href="/">PROCEED TO MY MAIN SITE</a>
+        </div>
+        
+        <footer>
+            &copy; 2025 Jamie West. Thank you for scanning responsibly.
+        </footer>
+    </div>
+    
+    <script>
+        let nextAlertId = 14; 
+        const body = document.body;
+        const toggleButton = document.querySelector('.mode-toggle');
+        
+        let isLightMode = localStorage.getItem('theme') !== 'dark';
+        
+        const osElement = document.getElementById('os-detected');
+        const historyElement = document.getElementById('history-length');
+        const timezoneElement = document.getElementById('timezone-id');
+
+        const themes = ['alert-theme-blue', 'alert-theme-green', 'alert-theme-purple', 'alert-theme-yellow', 'alert-theme-red'];
+        
+        const alertMessages = [
+            { title: 'SECURITY PROMPT:', message: 'FILE INJECTION DETECTED. Execution started from unknown source.' },
+            { title: 'WARNING:', message: 'Unauthorised access initiated. Data integrity check failed.' },
+            { title: 'SYSTEM OVERRIDE:', message: 'Bypassing local security protocols. Data transmission beginning...' },
+            { title: 'ERROR 0x000FF:', message: 'Memory leak detected. System resources critically low.' },
+            { title: 'CRITICAL ALERT:', message: 'External connection established. Your IP address is now public.' },
+            { title: 'NOTIFICATION:', message: 'System log files are being accessed. Your recent activity is being REVIEWING.' },
+            { title: 'PROCESS FAILED:', message: 'Antivirus shield compromised. Vulnerability detected.' },
+            { title: 'RETICULATING SPLINES:', message: 'Old Maxis games were the best, weren\'t they?' },
+            { title: 'VIRUS DETECTED:', message: 'Your operating system integrity has been compromised. Seek immediate assistance.' },
+            { title: 'CONGRATS!!:', message: 'You have won a complimentary trip to Skegness, 1998. Click "OK" to accept dial-up charges.' },
+            { title: 'URGENT MESSAGE:', message: 'All personal data is now publicly accessible. (Click to resolve issue)' },
+            { title: 'INSTALLATION ERROR:', message: 'Malware payload deployment successful. Restart recommended.' },
+            { title: 'ADVISORY:', message: 'Your tea-making routine has been assessed as "sub-optimal". Brewing recommendations downloading now...' },
+            { title: 'NETWORK CONFLICT:', message: 'DNS settings changed without user confirmation. Connection is unstable.' },
+            { title: 'FATAL ERROR:', message: 'KERNEL PANIC - Unrecoverable system failure. Shutting down in 5 seconds.' },
+            { title: 'ACCESS DENIED:', message: 'Authentication attempt failed 3 times. Account locked for 24 hours.' },
+            { title: 'UPDATE REQUIRED:', message: 'Mandatory security update is pending. Install immediately or lose data.' },
+            { title: 'ATTENTION, USER:', message: 'The primary gateway has been disabled. Routing through unsecure channel.' }
+        ];
+
+        function initiateScareFlash() {
+            body.classList.add('scare-flash');
+            setTimeout(() => {
+                body.classList.remove('scare-flash');
+            }, 50);
+        }
+
+        function initiateScreenShake() {
+            body.classList.add('screen-shake');
+            setTimeout(() => {
+                body.classList.remove('screen-shake');
+            }, 100); 
+        }
+
+        function startTitleGlitch(durationMs) {
+            const originalTitle = document.title;
+            const chars = '01#%&@*?!/\\=';
+            let glitchInterval;
+            let elapsed = 0;
+            const intervalTime = 50;
+
+            glitchInterval = setInterval(() => {
+                if (elapsed >= durationMs) {
+                    clearInterval(glitchInterval);
+                    document.title = originalTitle;
+                    return;
+                }
+                
+                let newTitle = '';
+                for (let i = 0; i < originalTitle.length; i++) {
+                    newTitle += chars[Math.floor(Math.random() * chars.length)];
+                }
+                document.title = newTitle;
+                elapsed += intervalTime;
+            }, intervalTime);
+        }
+
+        function setRandomPosition(alertElement) {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            const alertWidth = 280; 
+            const alertHeight = 90; 
+
+            const maxX = viewportWidth - alertWidth - 20;
+            const maxY = viewportHeight - alertHeight - 20;
+
+            const randomX = Math.floor(Math.random() * Math.max(1, maxX - 10)) + 10;
+            const randomY = Math.floor(Math.random() * Math.max(1, maxY - 10)) + 10;
+            
+            alertElement.style.left = randomX + 'px';
+            alertElement.style.top = randomY + 'px';
+        }
+
+        function triggerCloseAlert(alertElement) {
+            alertElement.classList.remove('active');
+            alertElement.classList.add('hide');
+            
+            // Remove the alert element after its transition
+            setTimeout(() => {
+                alertElement.remove();
+            }, 600);
+            
+            // Spawn 2 new alerts immediately
+            spawnAlerts(2, 50); 
+        }
+
+        function createNewAlertElement() {
+            const alert = document.createElement('div');
+            const alertId = `alert-${nextAlertId++}`;
+            alert.id = alertId;
+            alert.classList.add('fake-alert');
+
+            const messageObj = alertMessages[Math.floor(Math.random() * alertMessages.length)];
+
+            alert.innerHTML = `
+                <span class="close-btn">&times;</span>
+                <span class="alert-title">${messageObj.title}</span>
+                ${messageObj.message}
+            `;
+            
+            document.body.appendChild(alert);
+            return alert;
+        }
+
+        function spawnAlerts(count, initialDelay = 0) {
+            const autoCloseTime = 60 * 1000;
+            const stagger = 250;
+            let delay = initialDelay;
+
+            for (let i = 0; i < count; i++) {
+                const newAlert = createNewAlertElement();
+                
+                setTimeout(() => {
+                    setRandomPosition(newAlert);
+                    
+                    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+                    newAlert.classList.add(randomTheme);
+
+                    newAlert.classList.add('active');
+
+                    const autoCloseTimer = setTimeout(() => {
+                        // Use a safe check since it might have been manually closed
+                        if (newAlert.parentNode) {
+                            newAlert.classList.remove('active');
+                            newAlert.classList.add('hide');
+                            setTimeout(() => newAlert.remove(), 600); 
+                        }
+                    }, autoCloseTime);
+
+                    const closeButton = newAlert.querySelector('.close-btn');
+                    if (closeButton) {
+                        closeButton.addEventListener('click', function handler() {
+                            clearTimeout(autoCloseTimer);
+                            triggerCloseAlert(newAlert);
+                            closeButton.removeEventListener('click', handler);
+                        }, { once: true });
+                    }
+                }, delay);
+                delay += stagger;
+            }
+        }
+        
+        function initiateFakeAlerts() {
+            const initialAlertIds = [
+                'alert-1', 'alert-2', 'alert-3', 'alert-4', 
+                'alert-5', 'alert-6', 'alert-7', 'alert-8',
+                'alert-9', 'alert-10', 'alert-11', 'alert-12', 'alert-13'
+            ];
+            const alerts = initialAlertIds.map(id => document.getElementById(id));
+            
+            let delay = 0;
+            const stagger = 250;
+            const autoCloseTime = 60 * 1000;
+
+            alerts.forEach((alert) => {
+                if (!alert) return;
+
+                setTimeout(() => {
+                    setRandomPosition(alert);
+                    
+                    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+                    alert.classList.add(randomTheme);
+
+                    alert.classList.add('active');
+
+                    const autoCloseTimer = setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.classList.remove('active');
+                            alert.classList.add('hide');
+                            setTimeout(() => alert.remove(), 600);
+                        }
+                    }, autoCloseTime);
+
+                    const closeButton = alert.querySelector('.close-btn');
+                    if (closeButton) {
+                        closeButton.addEventListener('click', function handler() {
+                            clearTimeout(autoCloseTimer);
+                            triggerCloseAlert(alert);
+                            closeButton.removeEventListener('click', handler);
+                        }, { once: true });
+                    }
+
+                }, delay);
+                delay += stagger;
+            });
+        }
+
+        function detectSystemMetrics() {
+            const userAgent = navigator.userAgent;
+            const historyLength = history.length;
+            const timezoneId = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            let os = 'Unknown System';
+
+            if (userAgent.includes('Windows')) {
+                os = 'Windows OS';
+            } else if (userAgent.includes('Macintosh')) {
+                os = 'macOS';
+            } else if (userAgent.includes('Android')) {
+                os = 'Android Mobile';
+            } else if (userAgent.includes('Linux')) {
+                os = 'Linux Kernel';
+            } else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+                os = 'iOS/iPadOS';
+            }
+
+            setTimeout(() => {
+                if (osElement) {
+                    osElement.textContent = os;
+                }
+                if (historyElement) {
+                    historyElement.textContent = historyLength; 
+                }
+                if (timezoneElement) {
+                    timezoneElement.textContent = timezoneId;
+                }
+            }, 1500);
+        }
+
+        function applyTheme() {
+            if (!isLightMode) {
+                body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        initiateScareFlash();
+        initiateScreenShake();
+
+        setTimeout(() => {
+            startTitleGlitch(65 * 1000);
+        }, 100); 
+
+        applyTheme();
+        detectSystemMetrics();
+
+        initiateFakeAlerts();
+
+        toggleButton.addEventListener('click', () => {
+            isLightMode = !isLightMode;
+            applyTheme();
+        });
+    </script>
+</body>
+</html>
