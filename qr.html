@@ -629,12 +629,10 @@
             alertElement.classList.remove('active');
             alertElement.classList.add('hide');
             
-            // Remove the alert element after its transition
             setTimeout(() => {
                 alertElement.remove();
-            }, 600);
+            }, 10);
             
-            // Spawn 2 new alerts immediately
             spawnAlerts(2, 50); 
         }
 
@@ -657,7 +655,7 @@
         }
 
         function spawnAlerts(count, initialDelay = 0) {
-            const autoCloseTime = 60 * 1000;
+            const autoCloseTime = 7 * 1000;
             const stagger = 250;
             let delay = initialDelay;
 
@@ -673,11 +671,10 @@
                     newAlert.classList.add('active');
 
                     const autoCloseTimer = setTimeout(() => {
-                        // Use a safe check since it might have been manually closed
                         if (newAlert.parentNode) {
                             newAlert.classList.remove('active');
                             newAlert.classList.add('hide');
-                            setTimeout(() => newAlert.remove(), 600); 
+                            setTimeout(() => newAlert.remove(), 10); 
                         }
                     }, autoCloseTime);
 
@@ -704,7 +701,7 @@
             
             let delay = 0;
             const stagger = 250;
-            const autoCloseTime = 60 * 1000;
+            const autoCloseTime = 7 * 1000;
 
             alerts.forEach((alert) => {
                 if (!alert) return;
