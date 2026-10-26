@@ -1,0 +1,172 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'profile' | 'article';
+  containerClass?: string;
+}
+
+const {
+  title = "Jamie West | Cloud Engineering & DevOps Security",
+  description = "Jamie West is a security-focused Cloud Engineering and DevOps professional helping high-performing organisations remain secure without sacrificing velocity.",
+  image = "https://jamieianwest.com/og-image.png",
+  type = "website",
+  containerClass = "container"
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://jamieianwest.com");
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <meta name="description" content={description}>
+    <meta name="author" content="Jamie West">
+    <meta name="keywords" content="Jamie West, Cloud Engineering, DevOps, Cloud Security, DevSecOps, Infrastructure as Code, CI/CD, Platform Engineering">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <link rel="canonical" href={canonicalURL}>
+
+    <!-- Icons & Manifest -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#EAEAEA" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={type}>
+    <meta property="og:url" content={canonicalURL}>
+    <meta property="og:title" content={title}>
+    <meta property="og:description" content={description}>
+    <meta property="og:image" content={image}>
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Jamie West - Security-Focused Cloud Engineering & DevOps">
+    <meta property="og:site_name" content="Jamie West">
+    <meta property="og:locale" content="en_GB">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content={canonicalURL}>
+    <meta name="twitter:title" content={title}>
+    <meta name="twitter:description" content={description}>
+    <meta name="twitter:image" content={image}>
+    <meta name="twitter:image:alt" content="Jamie West - Security-Focused Cloud Engineering & DevOps">
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="alternate" type="application/rss+xml" title="Jamie West | RSS Feed" href="/rss.xml" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json" is:inline>
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://jamieianwest.com/#website",
+          "url": "https://jamieianwest.com/",
+          "name": "Jamie West",
+          "description": "Portfolio and Blog of Jamie West, Cloud Engineering and DevOps Professional.",
+          "inLanguage": "en-GB",
+          "publisher": {
+            "@id": "https://jamieianwest.com/#person"
+          }
+        },
+        {
+          "@type": "Person",
+          "@id": "https://jamieianwest.com/#person",
+          "name": "Jamie West",
+          "alternateName": "Jamie Ian West",
+          "url": "https://jamieianwest.com/",
+          "image": "https://jamieianwest.com/og-image.png",
+          "jobTitle": "Cloud Engineering & DevOps Security Professional",
+          "description": "Security-focused Cloud Engineering and DevOps professional helping high-performing organisations remain secure without sacrificing velocity.",
+          "sameAs": [
+            "https://github.com/Jamian",
+            "https://www.linkedin.com/in/jamieianwest/"
+          ],
+          "knowsAbout": [
+            "Cloud Engineering",
+            "DevOps",
+            "Cloud Security",
+            "DevSecOps",
+            "Infrastructure as Code",
+            "Continuous Integration and Continuous Delivery (CI/CD)"
+          ]
+        }
+      ]
+    }
+    </script>
+</head>
+<body>
+    <button class="mode-toggle" aria-label="Toggle dark and light mode">
+        <div class="mode-toggle-icon"></div>
+    </button>
+    
+    <main class={containerClass}>
+        <slot />
+        
+        <footer>
+            &copy; <span id="year"></span> Jamie West. All rights reserved.
+        </footer>
+    </main>
+
+    <script is:inline>
+        const body = document.body;
+        const toggleButton = document.querySelector('.mode-toggle');
+        const iconSvgMainGroup = document.querySelector('.icon svg g g'); 
+
+        const yearElem = document.getElementById("year");
+        if (yearElem) {
+            yearElem.textContent = new Date().getFullYear();
+        }
+        
+        let isLightMode = localStorage.getItem('theme') !== 'dark';
+
+        function applyTheme() {
+            if (!isLightMode) {
+                body.classList.add('dark-mode');
+                if (iconSvgMainGroup) { 
+                    iconSvgMainGroup.setAttribute('stroke', '#EAEAEA');
+                }
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                if (iconSvgMainGroup) { 
+                    iconSvgMainGroup.setAttribute('stroke', '#0A0A0A');
+                }
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        applyTheme();
+
+        if (toggleButton) {
+            toggleButton.addEventListener('click', () => {
+                isLightMode = !isLightMode;
+                applyTheme();
+            });
+        }
+    </script>
+
+    <script>
+        window.goatcounter = {
+            allow_local: false // DEV
+    }
+    </script>
+    
+    <script data-goatcounter="https://jamian.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js">
+    </script>
+</body>
+</html>
+

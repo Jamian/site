@@ -1,0 +1,14 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "// CALLOUT" } = Astro.props;
+---
+
+<div style="border: 1px solid #555; border-left: 3px solid #D10000; padding: 1.25rem 1.5rem; margin: 1.5rem 0;">
+  <div style="color: #888; font-size: 0.75rem; margin-bottom: 0.75rem;">{title}</div>
+  <div style="font-size: 1.05rem; line-height: 1.7;">
+    <slot />
+  </div>
+</div>

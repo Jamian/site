@@ -1,0 +1,96 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const formattedDate = post.data.pubDate.toLocaleDateString('en-GB', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+const postUrl = new URL(Astro.url.pathname, Astro.site || "https://jamieianwest.com");
+---
+
+<BaseLayout
+  title={`${post.data.title} | Jamie West`}
+  description={post.data.description}
+  type="article"
+  containerClass="wide-container"
+>
+    <!-- Article JSON-LD Structured Data -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": post.data.title,
+      "description": post.data.description,
+      "datePublished": post.data.pubDate.toISOString(),
+      "dateModified": (post.data.updatedDate || post.data.pubDate).toISOString(),
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": postUrl.toString()
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Jamie West",
+        "url": "https://jamieianwest.com/"
+      },
+      "publisher": {
+        "@type": "Person",
+        "name": "Jamie West",
+        "url": "https://jamieianwest.com/"
+      }
+    })} />
+
+    <nav style="margin-bottom: 2rem;">
+        <a href="/blog/" style="text-decoration: none; color: inherit; font-size: 0.9rem; border: 1px solid #555; padding: 6px 14px; display: inline-block;">
+            &larr; All posts
+        </a>
+    </nav>
+
+    <header style="margin-bottom: 2.5rem; border-bottom: 1px solid #555; padding-bottom: 1.5rem;">
+        <div class="post-meta">
+            <time datetime={post.data.pubDate.toISOString()}>{formattedDate}</time>
+            {post.data.tags && post.data.tags.map((tag: string) => (
+                <span class="tag-badge">#{tag}</span>
+            ))}
+        </div>
+
+        <h1 style="font-size: 2.2rem; text-transform: none; letter-spacing: 0; line-height: 1.25; margin-bottom: 1rem;">
+            {post.data.title}
+        </h1>
+
+        <p style="color: #666; font-size: 1.05rem; margin-bottom: 0;">
+            {post.data.description}
+        </p>
+    </header>
+
+    <div class="prose">
+        <Content />
+    </div>
+
+    <footer style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #555;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
+            <a href="/blog/" style="color: inherit; text-decoration: underline;">
+                &larr; Back to all posts
+            </a>
+            <a href="#top" style="color: inherit; text-decoration: none; font-size: 0.85rem; border: 1px solid #666; padding: 4px 10px;">
+                &uarr; Top
+            </a>
+        </div>
+        <p style="font-size: 0.8rem; color: #777; margin-bottom: 0;">
+            // All opinions expressed here are strictly my own and do not represent the views of my employer.
+        </p>
+    </footer>
+</BaseLayout>
+

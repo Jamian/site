@@ -1,0 +1,338 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Space Mono', monospace; 
+    transition: color 0.3s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+body {
+    background-color: #EAEAEA;
+    color: #0A0A0A;
+    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    position: relative;
+}
+
+.container {
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    position: relative; 
+    z-index: 10;
+    background-color: transparent; 
+}
+
+.wide-container {
+    max-width: 720px;
+    width: 100%;
+    text-align: left;
+    position: relative; 
+    z-index: 10;
+    background-color: transparent; 
+    margin: 40px auto;
+}
+
+.mode-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: 1px solid #555;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 2px;
+    z-index: 20; 
+}
+
+.mode-toggle:hover {
+    border-color: #0A0A0A;
+}
+
+.mode-toggle-icon {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #0A0A0A;
+    border-radius: 50%;
+}
+
+.icon {
+    width: 256px;
+    height: 256px;
+    margin: 0 auto 30px auto;
+    overflow: visible; 
+    z-index: 5;
+}
+
+.icon svg {
+    width: 100%;
+    height: 100%;
+    stroke: #0A0A0A;
+    overflow: visible; 
+}
+
+h1 {
+    font-size: 2.8rem;
+    margin-bottom: 5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+h2 {
+    font-size: 1.4rem;
+    margin-bottom: 30px;
+    font-weight: 400;
+    color: #555;
+}
+
+p {
+    margin-bottom: 30px;
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.8;
+    font-size: 0.95rem;
+}
+
+.wide-container p {
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.main-tagline {
+    font-weight: 700;
+    color: #0A0A0A;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.intro-text {
+    color: #555;
+    font-weight: 400;
+}
+
+.links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.links a {
+    display: inline-block;
+    text-decoration: none;
+    color: #0A0A0A;
+    border: 1px solid #555;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+.links a:hover {
+    background-color: #0A0A0A; 
+    color: #EAEAEA;
+    border-color: #0A0A0A;
+}
+
+.qr svg {
+    margin-top: 38px;
+    fill: #0A0A0A;
+}
+
+footer {
+    margin-top: 32px;
+    font-size: 0.8rem;
+    color: #555;
+    text-align: center;
+}
+
+/* --- Dark Mode Inversion Class --- */
+.dark-mode {
+    background-color: #0A0A0A;
+    color: #EAEAEA;
+}
+
+.dark-mode h2,
+.dark-mode footer,
+.dark-mode .intro-text {
+    color: #888; 
+}
+
+.dark-mode .main-tagline {
+    color: #EAEAEA;
+}
+
+.dark-mode .qr svg {
+    fill: #EAEAEA;
+}
+
+.dark-mode .mode-toggle {
+    border-color: #888;
+}
+
+.dark-mode .mode-toggle:hover {
+    border-color: #EAEAEA;
+}
+
+.dark-mode .mode-toggle-icon {
+    border-color: #EAEAEA;
+}
+
+.dark-mode .links a {
+    color: #EAEAEA;
+    border-color: #888;
+}
+
+.dark-mode .links a:hover {
+    background-color: #EAEAEA; 
+    color: #0A0A0A;
+    border-color: #EAEAEA;
+}
+
+/* --- Article / Markdown Styling --- */
+.prose {
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.3;
+}
+
+.prose h2 {
+    font-size: 1.5rem;
+    color: inherit;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.3rem;
+}
+
+.dark-mode .prose h2 {
+    border-bottom-color: #333;
+}
+
+.prose h3 {
+    font-size: 1.2rem;
+}
+
+.prose p {
+    margin-bottom: 1.4rem;
+}
+
+.prose ul, .prose ol {
+    margin-bottom: 1.4rem;
+    padding-left: 1.5rem;
+}
+
+.prose li {
+    margin-bottom: 0.5rem;
+}
+
+.prose blockquote {
+    border-left: 3px solid #555;
+    padding-left: 1rem;
+    color: #555;
+    margin: 1.5rem 0;
+    font-style: italic;
+}
+
+.dark-mode .prose blockquote {
+    border-left-color: #888;
+    color: #aaa;
+}
+
+.prose a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.prose pre {
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.prose code:not(pre code) {
+    background-color: rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+}
+
+.dark-mode .prose code:not(pre code) {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.post-meta {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.dark-mode .post-meta {
+    color: #888;
+}
+
+.tag-badge {
+    border: 1px solid #888;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* --- Tables in Prose --- */
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+.prose th, .prose td {
+    border: 1px solid #555;
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
+}
+
+.prose th {
+    background-color: rgba(0, 0, 0, 0.05);
+    font-weight: 700;
+}
+
+.dark-mode .prose th {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 600px) {
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.1rem; }
+    .icon { width: 80px; height: 80px; margin-bottom: 10px; }
+    .links a { width: 100%; text-align: center; }
+}
+
