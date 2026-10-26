@@ -390,7 +390,8 @@ const canonicalURL = new URL("/qr", Astro.site || "https://jamieianwest.com");
         </nav>
         
         <footer>
-            &copy; <span id="year"></span> Jamie West. Thank you for scanning responsibly.
+            &copy; <span id="year"></span> Jamie West. All rights reserved.<br /><br />
+            <a href="/disclaimer/" class="footer-disclaimer-link"> > DISCLAIMER</a>
         </footer>
     </main>
     
@@ -506,7 +507,32 @@ const canonicalURL = new URL("/qr", Astro.site || "https://jamieianwest.com");
                 ${messageObj.message}
             `;
             
-            document.body.appendChild(alert);
+                        
+            setTimeout(() => {
+                setRandomPosition(newAlert);
+                
+                const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+                newAlert.classList.add(randomTheme);
+
+                newAlert.classList.add('active');
+
+                const autoCloseTimer = setTimeout(() => {
+                    if (newAlert.parentNode) {
+                        newAlert.classList.remove('active');
+                        newAlert.classList.add('hide');
+                        setTimeout(() => newAlert.remove(), 500); 
+                    }
+                }, autoCloseTime);
+
+                const closeButton = newAlert.querySelector('.close-btn');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function handler() {
+                        clearTimeout(autoCloseTimer);
+                        triggerCloseAlert(newAlert);
+                        closeButton.removeEventListener('click', handler);
+                    }, { once: true });
+                }
+            }, delay);
             return alert;
         }
 
@@ -641,4 +667,3 @@ const canonicalURL = new URL("/qr", Astro.site || "https://jamieianwest.com");
     </script>
 </body>
 </html>
-

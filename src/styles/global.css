@@ -159,6 +159,19 @@ footer {
     text-align: center;
 }
 
+.footer-disclaimer-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.2s ease, opacity 0.2s ease;
+    opacity: 0.75;
+}  
+
+.footer-disclaimer-link:hover {
+    opacity: 1;
+    text-decoration-color: currentColor;
+}
+
 /* --- Dark Mode Inversion Class --- */
 .dark-mode {
     background-color: #0A0A0A;

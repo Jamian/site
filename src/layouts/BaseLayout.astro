@@ -116,8 +116,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://jamieian
         <slot />
         
         <footer>
-            &copy; <span id="year"></span> Jamie West. All rights reserved.
+            &copy; <span id="year"></span> Jamie West. All rights reserved.<br /><br />
+            <a href="/disclaimer/" class="footer-disclaimer-link"> > DISCLAIMER</a>
         </footer>
+
     </main>
 
     <script is:inline>
