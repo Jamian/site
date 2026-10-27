@@ -1,0 +1,144 @@
+---
+title: "Too Much, Too Fast: The Human Cost of AI-Driven Vulnerability Inflation"
+description: "We have reached a point in cybersecurity where the sheer volume of vulnerability disclosures has outstripped human capacity, please look after your humans in the loop."
+pubDate: 2026-10-27
+tags: ["cloud-security", "devsecops", "patching", "ai", "cve", "vulnerabilities", "burnout", "cybersecurity", "people"]
+---
+
+import Callout from '../../components/Callout.astro'
+import SideBySideTable from '../../components/SideBySideTable.astro'
+
+Our feeds have been completely consumed by endless chatter about AI and at the exact same time, our security dashboards started looking like mid-meltdown nuclear reactor control panels: flashing endless sea-of-red critical alerts across every screen. In our SCA tools - the Snyks, Aikidos, and Wizs of the world - the gain just keeps getting cranked up. It hasn't just been a little uptick; it’s become a relentless flood of alerts coming in faster than anyone can realistically review.
+
+It made me step back and ask: Is it just me feeling the squeeze, or is the whole industry hitting a breaking point?
+
+## An Avalanche, Automated
+
+We’re crossing a dangerous line in security where the sheer pace of vulnerability disclosures is completely outrunning human scale, some would argue we have been for a while and I wouldn't disagree. In just the first nine months of 2026, over 75,000 CVEs were logged globally[^1] - shattering the annual record set in 2025[^2]. What was once a steady stream of security advisories has mutated into an unstoppable deluge, with monthly disclosures more than doubling from around 5,000 per month to going on 15,000[^3].
+
+<div style="border: 1px solid #555; padding: 1.25rem; margin: 1.5rem 0;">
+  <div style="font-weight: 700; margin-bottom: 1rem;">
+    Global CVE Disclosures (2026 Shift)
+  </div>
+
+  <div style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+      <span>[2025]</span>
+      <span style="color: #888;">48,244</span>
+    </div>
+    <div style="background: rgba(128,128,128,0.2); height: 14px; border: 1px solid #555;">
+      <div style="background: #888; width: 48%; height: 100%;"></div>
+    </div>
+  </div>
+  <div style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+      <span>[2026 (so far)]</span>
+      <span style="color: #D10000;">75,000+</span>
+    </div>
+    <div style="background: rgba(128,128,128,0.2); height: 14px; border: 1px solid #555;">
+      <div style="background: #D10000; width: 75%; height: 100%;"></div>
+    </div>
+  </div>
+</div>
+
+This surge isn't caused by developers suddenly writing increasingly worse code (yet, anyway - give it a year and we'll all be writing about the fallout of AI Coding Assistants catalysing bad engineers); it is driven by the mass adoption of AI-powered offensive tooling and automated fuzzers. AI discovery engines operate 24/7 at scale, rapidly probing repositories and running automated vulnerability research across vast codebases.
+
+As a result, the "top of the funnel" has inflated exponentially. While automated agents can discover software flaws in seconds, human defenders are still required to triage, validate, and patch them using traditional workflows. Security teams find themselves caught in an asymmetric war of endurance. They are forced to respond at machine speed but they are bound by human limits.
+
+## Our Behind the Scenes Systems are Shaking
+
+**Worse still, the systems we built to handle this exact burden struggle to adapt.**
+
+When the volume of incoming disclosures was manageable, defenders could lean on centralised safety nets to separate the signal from the noise. 
+
+But when thousands of vulnerabilities turned into tens of thousands of automated alerts, those safety nets couldn't keep pace. And when the infrastructure stopped keeping pace, the operational tax didn’t disappear; it was dumped directly onto the already overwhelmed human in the loop.   
+In April 2026, overwhelmed by submission volumes, NIST formally overhauled its model, shifting away from universal enrichment. Moving forward, enrichment is restricted primarily to vulnerabilities appearing in CISA's Known Exploited Vulnerabilities (KEV) catalog, federal software, or designated critical software. Everything else is categorised as "lowest priority", leaving vast portions of incoming CVE streams without automated analysis or standardised NVD enrichment[^4].
+
+When centralised infrastructure stops universal enrichment, the operational tax doesn't disappear; it simply gets passed on to internal security analysts. Without automated mappings and independent scoring, defenders face a contextual vacuum:
+
+* **Manual Software Identification**: Analysts are forced to play amateur detective - manually parsing unstructured release notes just to figure out if a vulnerability actually touches their tech stack.
+* **Internal Re-Scoring**: Teams become impromptu "mini-NVDs", burning hours re-scoring raw flaws and arguing with IT over which fires actually warrant emergency patching.
+* **Noise Amplification**: Every raw disclosure triggers an all-hands fire drill because the automated filters meant to strip out the irrelevant noise have flatlined.
+
+## Defensive Lag
+
+To cope with this influx, leadership responds by deploying defensive AI security tools. However, throwing more AI into the stack without updating operational models has created an implementation gap.
+
+
+<SideBySideTable
+  titleLeft="// THE PROMISE"
+  contentLeft="Autonomous AI scanners will replace manual triage and reduce the operational load on security engineering."
+  titleRight="// THE REALITY"
+  contentRight="Triage labour hasn't vanished - it has simply shifted from investigating raw vulnerabilities to auditing and verifying uncalibrated AI findings.">
+</SideBySideTable>
+
+Rather than saving time, defensive AI platforms frequently shift the bottleneck from data gathering to alert verification. Security practitioners can find themselves stuck in a constant state of context-switching-chasing ghosts produced by aggressive detection models.
+
+**Related note** - This pressure is not helped by an emerging skill & resource disparity. Organisations continue to expand their digital attack surfaces and adopt complex AI infrastructure without increasing headcount or providing adequate training. Security teams are expected to defend entirely new AI stacks - orchestration frameworks, model gateways, and inference pipelines - using the same (if not worse) staffing levels and the same legacy processes they had years ago.
+
+## The Human Toll
+
+This persistent overtime leads to severe cognitive fatigue. Exhausted analysts suffer from reduced cognitive bandwidth, slower response times, and impaired decision-making under stress. Over time, this environment drives high turnover and rapid attrition, leaving remaining team members even more exposed.
+
+<Callout title="// INDUSTRY SNAPSHOT - 2026">
+  Security burnout isn't just a minor issue either - the rates are dire. **66%** of cybersecurity professionals in 2026 reported a more stressful role than five years ago, with more than half reporting teams are understaffed and stress being a top reason for attrition.[^5]
+</Callout>
+
+Burnout isn't just an HR or employee wellness issue. It directly degrades security outcomes too:
+
+* **Tiredness Leaves Doors Open**: When a team is permanently exhausted, missing a critical vulnerability, mismodeling an architecture change, or clicking a malicious link isn’t just an individual mistake - it's a systemic crack in the wall. A single missed signal or rushed review is all an attacker needs to slip right past your defenses and straight into your production environment.
+
+**When human defenders burn out, defensive posture degrades, and critical threats slip through the cracks.**
+
+## A Way Forward - Beyond Personal "Resilience"
+For too long the industry response to defender strain has focused on personal resilience: wellness programs, power-up sessions, or maybe an exec dishing out some inspirational messaging. While well-intentioned, these measures fail to address the core problem: you cannot self-care your way out of a systemic volume problem.
+
+Solving this crisis requires organisational leaders to change how security operations are structured and measured. For consideration and in no particular order:
+
+<div style="border: 1px solid #555; padding: 1.5rem 1.25rem; margin: 2rem 0; text-align: center;">
+  <div style="display: inline-block; border: 1px solid #555; padding: 8px 20px; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; background: rgba(128,128,128,0.1);">
+    STRATEGIC LEADERSHIP SHIFT
+  </div>
+  <div style="width: 1px; height: 24px; background: #555; margin: 0 auto;"></div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 4px;">
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// PILLAR 01</div>
+      <div style="font-weight: 700; font-size: 0.95rem;">Baseline Asset Context</div>
+    </div>
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// PILLAR 02</div>
+      <div style="font-weight: 700; font-size: 0.95rem;">Threat-Informed Triage</div>
+    </div>
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// PILLAR 03</div>
+      <div style="font-weight: 700; font-size: 0.95rem;">Guardrailed Automation</div>
+    </div>
+  </div>
+</div>
+
+1. **Fix Your Asset Context Before Buying More Security Tools**  
+AI tools are only as smart as the context you feed them. If your SCA inventories and CMDBs are a graveyard of duplicate entries, stale decommissioned infrastructure, and contextless applications, deploying AI-driven scanners will just generate more noise. Before adding automated triage, fix your baseline asset mapping: enforce clear identity mapping, define code owners, tag network exposure accurately (internet-facing vs. internal), and set distinct environment boundaries (prod vs. staging). Ideally, automate this - use tools that dynamically scan your cloud infrastructure to discover real network configurations. When a tool knows exactly where a bug lives and who owns the service, it can triage or route tickets instantly without human guesswork.
+
+2. **Pivot from Volume Management to Threat-Informed Triage**    
+Transition away from "CVSS-driven patching", move toward risk-based prioritisation. This requires focusing on context over theoretical severity. A CVSS 9.8 vulnerability sitting in an uncalled package, on an isolated internal server, behind multiple layers of zero-trust architecture is probably going to be less dangerous than a CVSS 6.1 remote code execution (RCE) vulnerability sitting on a public-facing API endpoint.
+
+3. **Shift from Manual Triage to Automated Remediation (with Guardrails)**    
+Don't make human analysts manually review and approve every single minor dependency patch. Instead, configure automated patching engines (like Dependabot or Renovate) to auto-generate pull requests for non-breaking, low-risk updates backed by robust CI/CD integration testing. Keep humans in the loop only for high-blast-radius breaking changes, production-critical core infrastructure, or reachable internet-facing vulnerabilities. Automating the noise lets engineering teams focus on actual risk instead of drowning in PR approval queues.
+
+## Conclusion
+
+The vulnerability avalanche isn't going to slow down. As AI-driven offensive fuzzing and autonomous discovery engines become more sophisticated, it's only going to get larger and faster.
+
+While AI velocity got us into this mess, it is only part of the answer. You cannot jump straight from The Phoenix Project-style operational chaos to autonomous AI-empowered defense overnight. Trying to overlay AI on top of broken processes, phantom servers, and unassigned code bases just gives you faster, more expensive chaos. First comes foundational discipline: building a mature, context-rich environment where asset identity, network exposure, and code ownership are continuously clear.
+
+Automating low-risk remediation and enriching threat context aren't just technical efficiency plays; **they are human preservation strategies**. If we continue to treat security analysts like human routing switches for low-grade alert noise, **burnout will remain our single biggest security vulnerability**.
+
+Build the context foundation first, automate the low-blast-radius noise, and above all, if nothing else, **please look after your humans in the loop**. In a world of automated noise, human judgment is the only real safeguard you actually have left.
+
+---
+
+[^1]: Verified via [Cyber Strategy Institute's 2026 CVE Volume Analysis](https://cyberstrategyinstitute.com/cve-state-of-risk-october-2026/) and official [NIST NVD API quarterly intake feeds](https://nvd.nist.gov/developers/vulnerabilities).
+[^2]: Official 2025 baseline metrics published by [The CVE Program (MITRE)](https://www.cve.org).
+[^3]: Exploring the [Epoch AI Cyber Vulnerability interaction Explorer](https://epoch.ai/data/cve?view=graph&tab=monthly_by_cna&sourceFilter=all&colorBy=none&showMedium=true&showLow=true&showUnknown=true)
+[^4]: Announced in [NIST's Official NVD Operational Update (April 2026)](https://www.nist.gov/news-events/news/2026/04/nist-updates-nvd-operations-address-record-cve-growth).
+[^5]: ISACA's [State of Cybersecurity 2025-2026 Report](https://www.isaca.org/-/media/files/isacadp/project/isaca/resources/infographics/isaca-state-of-cybersecurity-infographic-global-0925.pdf).

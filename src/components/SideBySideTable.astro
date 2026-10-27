@@ -1,0 +1,36 @@
+---
+interface Props {
+  titleLeft?: string;
+  titleRight?: string;
+  contentLeft?: string;
+  contentRight: string;
+}
+
+const {
+    titleLeft = "",
+    titleRight = "",
+    contentLeft = "",
+    contentRight = ""
+} = Astro.props;
+
+---
+<div style="border: 1px solid #555; margin: 1.5rem 0; display: grid; grid-template-columns: 1fr 1fr;">
+  <div style="padding: 1.25rem; border-right: 1px solid #555;">
+    <div style="font-weight: 700; margin-bottom: 0.5rem; color: #888;">
+      <div style="color: #34d100;">
+      {titleLeft}
+      </div>
+    </div>
+    <p style="margin-bottom: 0; font-size: 0.9rem;">
+      {contentLeft}
+    </p>
+  </div>
+  <div style="padding: 1.25rem;">
+    <div style="font-weight: 700; margin-bottom: 0.5rem; color: #D10000;">
+      {titleRight}
+    </div>
+    <p style="margin-bottom: 0; font-size: 0.9rem;">
+      {contentRight}
+    </p>
+  </div>
+</div>
