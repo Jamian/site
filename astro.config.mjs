@@ -5,7 +5,12 @@ import sitemap from '@astrojs/sitemap';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://jamieianwest.com',
-  integrations: [sitemap(), mdx()],
+  integrations: [
+    sitemap({
+      filter: (page) => !page.includes('/qr') && !page.includes('/disclaimer'),
+    }),
+    mdx(),
+  ],
   markdown: {
     shikiConfig: {
       theme: 'github-dark',

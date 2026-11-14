@@ -36,7 +36,10 @@ const postUrl = new URL(Astro.url.pathname, Astro.site || "https://jamieianwest.
       "@type": "BlogPosting",
       "headline": post.data.title,
       "description": post.data.description,
+      "image": "https://jamieianwest.com/og-image.png",
+      "keywords": (post.data.tags || []).join(", "),
       "wordCount": wordCount,
+      "inLanguage": "en-GB",
       "datePublished": post.data.pubDate.toISOString(),
       "dateModified": (post.data.updatedDate || post.data.pubDate).toISOString(),
       "mainEntityOfPage": {
@@ -45,11 +48,13 @@ const postUrl = new URL(Astro.url.pathname, Astro.site || "https://jamieianwest.
       },
       "author": {
         "@type": "Person",
+        "@id": "https://jamieianwest.com/#person",
         "name": "Jamie West",
         "url": "https://jamieianwest.com/"
       },
       "publisher": {
         "@type": "Person",
+        "@id": "https://jamieianwest.com/#person",
         "name": "Jamie West",
         "url": "https://jamieianwest.com/"
       }
