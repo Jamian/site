@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import SeasonalVibes from '../components/SeasonalVibes.astro';
 
 interface Props {
   title?: string;
@@ -108,6 +109,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://jamieian
     </script>
 </head>
 <body>
+    <SeasonalVibes />
     <button class="mode-toggle" aria-label="Toggle dark and light mode">
         <div class="mode-toggle-icon"></div>
     </button>

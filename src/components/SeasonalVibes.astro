@@ -1,0 +1,1032 @@
+---
+// Seasonal pixel-art weather engine (runs all year round):
+// - Spring (Mar–May): Blossom petals, dandelion seeds, pixel bees/butterflies, wind gusts, and April showers
+// - Summer (Jun–Aug): Lush green leaves, meadow fluff, flying Bishybarnabees (ladybirds), subtle breeze, and rarer summer showers
+// - Autumn (Sep–Nov): Pixel autumn leaves, wind gusts, and passing rain showers
+// - Winter (Dec–Feb): Pixel snowflakes, wind gusts, and passing snow flurries
+// (Note - append ?season=spring, ?season=summer, ?season=autumn, or ?season=winter to any URL to preview)
+---
+
+<button
+  type="button"
+  id="weather-toggle"
+  class="weather-toggle"
+  aria-label="Toggle weather effects"
+  data-tooltip="Too cosy? Disable weather."
+>
+  <svg
+    class="weather-cloud-icon"
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 12 12"
+    shape-rendering="crispEdges"
+    aria-hidden="true"
+  >
+    <!-- Pixel cloud body -->
+    <rect x="4" y="1" width="4" height="1" fill="currentColor" />
+    <rect x="2" y="2" width="7" height="1" fill="currentColor" />
+    <rect x="1" y="3" width="10" height="3" fill="currentColor" />
+    <rect x="2" y="6" width="8" height="1" fill="currentColor" />
+    <!-- Pixel precipitation beneath cloud -->
+    <rect class="cloud-drop" x="3" y="8" width="1" height="2" fill="currentColor" />
+    <rect class="cloud-drop" x="6" y="9" width="1" height="2" fill="currentColor" />
+    <rect class="cloud-drop" x="9" y="8" width="1" height="2" fill="currentColor" />
+    <!-- Diagonal slash shown when weather is disabled -->
+    <path
+      class="weather-off-slash"
+      d="M1 1h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1h1v1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1z"
+      fill="#D10000"
+    />
+  </svg>
+</button>
+
+<div id="seasonal-vibes-layer" aria-hidden="true"></div>
+
+<style is:global>
+  .weather-toggle {
+    position: absolute;
+    top: 20px;
+    right: 58px;
+    width: 30px;
+    height: 30px;
+    background: none;
+    border: 1px solid #555;
+    color: #0A0A0A;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 2px;
+    z-index: 20;
+  }
+
+  .weather-toggle:hover {
+    border-color: #0A0A0A;
+  }
+
+  .dark-mode .weather-toggle {
+    color: #EAEAEA;
+    border-color: #888;
+  }
+
+  .dark-mode .weather-toggle:hover {
+    border-color: #EAEAEA;
+  }
+
+  .weather-toggle .weather-off-slash {
+    display: none;
+  }
+
+  .weather-toggle.weather-disabled .cloud-drop {
+    opacity: 0.25;
+  }
+
+  .weather-toggle.weather-disabled .weather-off-slash {
+    display: block;
+  }
+
+  /* Custom monospace tooltip on hover */
+  .weather-toggle::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 38px;
+    right: 0;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    padding: 4px 8px;
+    background-color: #0A0A0A;
+    color: #EAEAEA;
+    border: 1px solid #555;
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-3px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 30;
+  }
+
+  .dark-mode .weather-toggle::after {
+    background-color: #EAEAEA;
+    color: #0A0A0A;
+    border-color: #888;
+  }
+
+  .weather-toggle:hover::after,
+  .weather-toggle:focus-visible::after {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #seasonal-vibes-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+  }
+
+  .pixel-leaf {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform, opacity;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+
+  .pixel-wind {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform, opacity;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .pixel-rain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform, opacity;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+
+  .pixel-critter {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+    pointer-events: none;
+    opacity: 0.92;
+  }
+
+  .pixel-critter .wing-frame-2 {
+    display: none;
+  }
+
+  .pixel-critter.flap .wing-frame-1 {
+    display: none;
+  }
+
+  .pixel-critter.flap .wing-frame-2 {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #seasonal-vibes-layer,
+    .weather-toggle {
+      display: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const container = document.getElementById('seasonal-vibes-layer');
+    const toggleBtn = document.getElementById('weather-toggle');
+    if (!container) return;
+
+    // Determine active season:
+    // - Mar (2), Apr (3), May (4)   -> 'spring'
+    // - Jun (5), Jul (6), Aug (7)   -> 'summer'
+    // - Sept (8), Oct (9), Nov (10) -> 'autumn'
+    // - Dec (11), Jan (0), Feb (1)  -> 'winter'
+    // - Can also be previewed anytime via ?season=spring|summer|autumn|winter
+    const urlSeason = new URLSearchParams(window.location.search).get('season');
+    const month = new Date().getMonth();
+    let season = 'autumn';
+    if (
+      urlSeason === 'spring' ||
+      urlSeason === 'summer' ||
+      urlSeason === 'autumn' ||
+      urlSeason === 'winter'
+    ) {
+      season = urlSeason;
+    } else if (month >= 2 && month <= 4) {
+      season = 'spring';
+    } else if (month >= 5 && month <= 7) {
+      season = 'summer';
+    } else if (month >= 8 && month <= 10) {
+      season = 'autumn';
+    } else {
+      season = 'winter';
+    }
+
+    let weatherDisabled = localStorage.getItem('weather') === 'off';
+
+    const AUTUMN_PALETTES = [
+      { main: '#D9531E', highlight: '#F07838', vein: '#7A240B' }, // Burnt Orange
+      { main: '#C83218', highlight: '#E04D2D', vein: '#6B1508' }, // Autumn Crimson
+      { main: '#D99B16', highlight: '#F2BC38', vein: '#855808' }, // Golden Amber
+      { main: '#B84A1B', highlight: '#D46733', vein: '#5E2208' }  // Rust Copper
+    ];
+
+    const SUMMER_LEAF_PALETTES = [
+      { main: '#3B9E3F', highlight: '#68C76C', vein: '#1E5921' }, // Hedgerow Green
+      { main: '#2D8A4E', highlight: '#52B774', vein: '#164A28' }, // Deep Meadow Leaf
+      { main: '#55A630', highlight: '#80B918', vein: '#2B5917' }  // Sunlit Oak Green
+    ];
+
+    const WINTER_PALETTES = [
+      { main: '#7FAFD4', highlight: '#C2E2FA', core: '#FFFFFF' }, // Frost Blue
+      { main: '#90BFE0', highlight: '#D6EEFF', core: '#FFFFFF' }, // Ice Crystal
+      { main: '#6B9BC3', highlight: '#B0D8F5', core: '#EBF7FF' }  // Winter Sky
+    ];
+
+    const SPRING_PETAL_PALETTES = [
+      { main: '#F497B6', highlight: '#FAD2E1', base: '#D86C91' }, // Cherry Blossom Pink
+      { main: '#F7B2C4', highlight: '#FFF0F5', base: '#E285A1' }, // Soft Sakura Blush
+      { main: '#F27D9D', highlight: '#F9B8CA', base: '#C95476' }, // Deep Blossom Rose
+      { main: '#7BC950', highlight: '#A8E683', base: '#498A28' }  // Fresh Spring Leaf Shoot
+    ];
+
+    // Two crisp 12x12 pixel-art leaf templates (Maple & Oak/Birch)
+    function createLeafSVG(palette, variant, size) {
+      const { main, highlight, vein } = palette;
+      if (variant === 0) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 12 12" shape-rendering="crispEdges">
+          <rect x="5" y="0" width="2" height="1" fill="${highlight}"/>
+          <rect x="2" y="1" width="1" height="1" fill="${highlight}"/>
+          <rect x="4" y="1" width="4" height="1" fill="${main}"/>
+          <rect x="9" y="1" width="1" height="1" fill="${highlight}"/>
+          <rect x="1" y="2" width="10" height="1" fill="${main}"/>
+          <rect x="3" y="2" width="3" height="1" fill="${highlight}"/>
+          <rect x="0" y="3" width="12" height="1" fill="${main}"/>
+          <rect x="2" y="3" width="2" height="1" fill="${highlight}"/>
+          <rect x="1" y="4" width="10" height="1" fill="${main}"/>
+          <rect x="2" y="5" width="8" height="1" fill="${main}"/>
+          <rect x="1" y="6" width="10" height="1" fill="${main}"/>
+          <rect x="3" y="7" width="6" height="1" fill="${main}"/>
+          <rect x="4" y="8" width="4" height="1" fill="${main}"/>
+          <rect x="5" y="3" width="1" height="6" fill="${vein}"/>
+          <rect x="4" y="4" width="1" height="1" fill="${vein}"/>
+          <rect x="6" y="5" width="1" height="1" fill="${vein}"/>
+          <rect x="5" y="9" width="1" height="2" fill="${vein}"/>
+          <rect x="4" y="10" width="1" height="1" fill="${vein}"/>
+        </svg>`;
+      } else {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 12 12" shape-rendering="crispEdges">
+          <rect x="7" y="1" width="3" height="1" fill="${highlight}"/>
+          <rect x="5" y="2" width="6" height="1" fill="${main}"/>
+          <rect x="6" y="2" width="3" height="1" fill="${highlight}"/>
+          <rect x="4" y="3" width="7" height="1" fill="${main}"/>
+          <rect x="5" y="3" width="2" height="1" fill="${highlight}"/>
+          <rect x="3" y="4" width="7" height="1" fill="${main}"/>
+          <rect x="2" y="5" width="7" height="1" fill="${main}"/>
+          <rect x="2" y="6" width="6" height="1" fill="${main}"/>
+          <rect x="3" y="7" width="4" height="1" fill="${main}"/>
+          <rect x="7" y="3" width="1" height="1" fill="${vein}"/>
+          <rect x="6" y="4" width="1" height="1" fill="${vein}"/>
+          <rect x="5" y="5" width="1" height="1" fill="${vein}"/>
+          <rect x="4" y="6" width="1" height="1" fill="${vein}"/>
+          <rect x="3" y="7" width="1" height="1" fill="${vein}"/>
+          <rect x="2" y="8" width="1" height="1" fill="${vein}"/>
+          <rect x="1" y="9" width="1" height="1" fill="${vein}"/>
+        </svg>`;
+      }
+    }
+
+    // Spring templates: Cherry blossom petal & weightless dandelion seed parachute
+    function createSpringSVG(palette, isDandelion, size) {
+      if (isDandelion) {
+        // Fluffy pixel dandelion clock seed that lifts in the breeze
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 9 11" shape-rendering="crispEdges">
+          <rect x="1" y="1" width="1" height="1" fill="#FFFFFF"/>
+          <rect x="4" y="0" width="1" height="2" fill="#FFFFFF"/>
+          <rect x="7" y="1" width="1" height="1" fill="#FFFFFF"/>
+          <rect x="0" y="2" width="2" height="1" fill="#E8F1F5"/>
+          <rect x="3" y="2" width="3" height="1" fill="#FFFFFF"/>
+          <rect x="7" y="2" width="2" height="1" fill="#E8F1F5"/>
+          <rect x="2" y="3" width="1" height="1" fill="#C5D6E0"/>
+          <rect x="4" y="3" width="1" height="1" fill="#C5D6E0"/>
+          <rect x="6" y="3" width="1" height="1" fill="#C5D6E0"/>
+          <rect x="3" y="4" width="3" height="1" fill="#B0C4D1"/>
+          <rect x="4" y="5" width="1" height="3" fill="#9E8B6E"/>
+          <rect x="4" y="8" width="1" height="2" fill="#5C4424"/>
+        </svg>`;
+      }
+      const { main, highlight, base } = palette;
+      // Notched cherry blossom pixel petal
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 9 9" shape-rendering="crispEdges">
+        <rect x="2" y="1" width="2" height="1" fill="${highlight}"/>
+        <rect x="5" y="1" width="2" height="1" fill="${highlight}"/>
+        <rect x="1" y="2" width="7" height="2" fill="${main}"/>
+        <rect x="2" y="2" width="2" height="1" fill="${highlight}"/>
+        <rect x="1" y="4" width="7" height="2" fill="${main}"/>
+        <rect x="2" y="6" width="5" height="1" fill="${main}"/>
+        <rect x="3" y="7" width="3" height="1" fill="${base}"/>
+        <rect x="4" y="8" width="1" height="1" fill="${base}"/>
+      </svg>`;
+    }
+
+    // Two-frame animated pixel Bishybarnabee (Norfolk dialect for a ladybird!) for Summer
+    function createBishybarnabeeSVG() {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 11 9" shape-rendering="crispEdges">
+        <!-- Frame 1: Translucent flight wings up & open -->
+        <g class="wing-frame-1">
+          <rect x="2" y="0" width="2" height="2" fill="#DDF0FF" opacity="0.85"/>
+          <rect x="5" y="0" width="2" height="2" fill="#DDF0FF" opacity="0.85"/>
+          <rect x="1" y="1" width="1" height="1" fill="#FFFFFF" opacity="0.8"/>
+        </g>
+        <!-- Frame 2: Flight wings tucked mid-beat -->
+        <g class="wing-frame-2">
+          <rect x="1" y="2" width="3" height="1" fill="#DDF0FF" opacity="0.85"/>
+          <rect x="5" y="2" width="2" height="1" fill="#DDF0FF" opacity="0.85"/>
+        </g>
+        <!-- Red spotted elytra (wing cases) -->
+        <rect x="3" y="2" width="4" height="1" fill="#E02424"/>
+        <rect x="3" y="2" width="2" height="1" fill="#FF5C5C"/>
+        <rect x="2" y="3" width="6" height="3" fill="#E02424"/>
+        <rect x="3" y="3" width="1" height="1" fill="#FF5C5C"/>
+        <!-- Classic black spots -->
+        <rect x="3" y="4" width="1" height="1" fill="#181818"/>
+        <rect x="5" y="3" width="1" height="1" fill="#181818"/>
+        <rect x="6" y="5" width="1" height="1" fill="#181818"/>
+        <!-- Dark underside, head, white eye spot & tiny legs -->
+        <rect x="3" y="6" width="5" height="1" fill="#181818"/>
+        <rect x="8" y="4" width="2" height="2" fill="#181818"/>
+        <rect x="8" y="4" width="1" height="1" fill="#FFFFFF"/>
+        <rect x="10" y="3" width="1" height="1" fill="#181818"/>
+        <rect x="3" y="7" width="1" height="1" fill="#181818"/>
+        <rect x="5" y="7" width="1" height="1" fill="#181818"/>
+        <rect x="7" y="7" width="1" height="1" fill="#181818"/>
+      </svg>`;
+    }
+
+    // Two-frame animated pixel Bumblebee & Butterfly for Spring cameos
+    function createSpringCritterSVG(isButterfly) {
+      if (isButterfly) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="20" viewBox="0 0 11 10" shape-rendering="crispEdges">
+          <!-- Frame 1: Wings open -->
+          <g class="wing-frame-1">
+            <rect x="1" y="1" width="3" height="3" fill="#FF70A6"/>
+            <rect x="7" y="1" width="3" height="3" fill="#FF70A6"/>
+            <rect x="2" y="2" width="1" height="1" fill="#FFCAD4"/>
+            <rect x="8" y="2" width="1" height="1" fill="#FFCAD4"/>
+            <rect x="2" y="5" width="2" height="3" fill="#FF9770"/>
+            <rect x="7" y="5" width="2" height="3" fill="#FF9770"/>
+          </g>
+          <!-- Frame 2: Wings folded mid-flap -->
+          <g class="wing-frame-2">
+            <rect x="3" y="1" width="2" height="4" fill="#FF70A6"/>
+            <rect x="6" y="1" width="2" height="4" fill="#FF70A6"/>
+            <rect x="4" y="2" width="1" height="1" fill="#FFCAD4"/>
+            <rect x="6" y="2" width="1" height="1" fill="#FFCAD4"/>
+            <rect x="3" y="5" width="2" height="2" fill="#FF9770"/>
+            <rect x="6" y="5" width="2" height="2" fill="#FF9770"/>
+          </g>
+          <!-- Butterfly body & antennae -->
+          <rect x="5" y="2" width="1" height="6" fill="#2B2118"/>
+          <rect x="4" y="1" width="1" height="1" fill="#2B2118"/>
+          <rect x="6" y="1" width="1" height="1" fill="#2B2118"/>
+        </svg>`;
+      }
+      // Chubby pixel Bumblebee with 2-frame fluttering wings
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="18" viewBox="0 0 11 9" shape-rendering="crispEdges">
+        <!-- Frame 1: Wings up -->
+        <g class="wing-frame-1">
+          <rect x="3" y="0" width="2" height="2" fill="#E2F1FF" opacity="0.9"/>
+          <rect x="6" y="0" width="2" height="2" fill="#E2F1FF" opacity="0.9"/>
+          <rect x="4" y="2" width="3" height="1" fill="#FFFFFF" opacity="0.85"/>
+        </g>
+        <!-- Frame 2: Wings down/out -->
+        <g class="wing-frame-2">
+          <rect x="2" y="2" width="2" height="2" fill="#E2F1FF" opacity="0.9"/>
+          <rect x="7" y="2" width="2" height="2" fill="#E2F1FF" opacity="0.9"/>
+        </g>
+        <!-- Bee body stripes -->
+        <rect x="2" y="4" width="1" height="2" fill="#222222"/>
+        <rect x="3" y="3" width="2" height="4" fill="#F5B700"/>
+        <rect x="5" y="3" width="2" height="4" fill="#222222"/>
+        <rect x="7" y="3" width="2" height="4" fill="#F5B700"/>
+        <rect x="9" y="4" width="1" height="2" fill="#222222"/>
+        <rect x="8" y="4" width="1" height="1" fill="#FFFFFF"/>
+        <rect x="1" y="5" width="1" height="1" fill="#222222"/>
+      </svg>`;
+    }
+
+    // Two simple, airy pixel-art snowflake templates for Winter
+    function createSnowflakeSVG(palette, variant, size) {
+      const { main, highlight, core } = palette;
+      if (variant === 0) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 7 7" shape-rendering="crispEdges">
+          <rect x="3" y="0" width="1" height="7" fill="${main}"/>
+          <rect x="0" y="3" width="7" height="1" fill="${main}"/>
+          <rect x="1" y="1" width="1" height="1" fill="${highlight}"/>
+          <rect x="5" y="1" width="1" height="1" fill="${highlight}"/>
+          <rect x="1" y="5" width="1" height="1" fill="${highlight}"/>
+          <rect x="5" y="5" width="1" height="1" fill="${highlight}"/>
+          <rect x="3" y="2" width="1" height="3" fill="${highlight}"/>
+          <rect x="2" y="3" width="3" height="1" fill="${highlight}"/>
+          <rect x="3" y="3" width="1" height="1" fill="${core}"/>
+        </svg>`;
+      } else {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 5 5" shape-rendering="crispEdges">
+          <rect x="2" y="0" width="1" height="5" fill="${main}"/>
+          <rect x="0" y="2" width="5" height="1" fill="${main}"/>
+          <rect x="2" y="1" width="1" height="3" fill="${highlight}"/>
+          <rect x="1" y="2" width="3" height="1" fill="${highlight}"/>
+          <rect x="2" y="2" width="1" height="1" fill="${core}"/>
+        </svg>`;
+      }
+    }
+
+    // Crisp pixel-art wind streak with a curling tip and trailing dashes
+    function createWindSVG(variant) {
+      const color = '#888888';
+      if (variant === 0) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="32" viewBox="0 0 32 8" shape-rendering="crispEdges">
+          <rect x="0" y="5" width="2" height="1" fill="${color}" opacity="0.4"/>
+          <rect x="4" y="5" width="5" height="1" fill="${color}" opacity="0.65"/>
+          <rect x="11" y="5" width="15" height="1" fill="${color}"/>
+          <rect x="26" y="4" width="3" height="1" fill="${color}"/>
+          <rect x="29" y="2" width="1" height="2" fill="${color}"/>
+          <rect x="27" y="1" width="2" height="1" fill="${color}"/>
+          <rect x="26" y="2" width="1" height="1" fill="${color}" opacity="0.7"/>
+          <rect x="8" y="7" width="3" height="1" fill="${color}" opacity="0.4"/>
+          <rect x="13" y="7" width="8" height="1" fill="${color}" opacity="0.6"/>
+        </svg>`;
+      } else {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="112" height="28" viewBox="0 0 28 7" shape-rendering="crispEdges">
+          <rect x="1" y="3" width="3" height="1" fill="${color}" opacity="0.45"/>
+          <rect x="6" y="3" width="16" height="1" fill="${color}"/>
+          <rect x="22" y="4" width="3" height="1" fill="${color}"/>
+          <rect x="25" y="5" width="1" height="1" fill="${color}" opacity="0.75"/>
+          <rect x="10" y="1" width="9" height="1" fill="${color}" opacity="0.6"/>
+          <rect x="20" y="1" width="2" height="1" fill="${color}" opacity="0.4"/>
+        </svg>`;
+      }
+    }
+
+    // Raindrop and splash SVGs
+    const RAINDROP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="6" height="18" viewBox="0 0 3 9" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="1" height="3" fill="#6B9BC3" opacity="0.5"/>
+      <rect x="1" y="3" width="1" height="3" fill="#6B9BC3" opacity="0.8"/>
+      <rect x="2" y="6" width="1" height="3" fill="#8AB4D8"/>
+    </svg>`;
+
+    const SPLASH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="8" viewBox="0 0 7 4" shape-rendering="crispEdges">
+      <rect x="0" y="1" width="1" height="1" fill="#8AB4D8"/>
+      <rect x="3" y="0" width="1" height="1" fill="#8AB4D8"/>
+      <rect x="6" y="1" width="1" height="1" fill="#8AB4D8"/>
+      <rect x="1" y="3" width="2" height="1" fill="#6B9BC3" opacity="0.7"/>
+      <rect x="4" y="3" width="2" height="1" fill="#6B9BC3" opacity="0.7"/>
+    </svg>`;
+
+    // Winter snow flurry pellet & settling puff SVGs
+    const SNOW_PELLET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6" viewBox="0 0 3 3" shape-rendering="crispEdges">
+      <rect x="1" y="0" width="1" height="3" fill="#90BFE0" opacity="0.85"/>
+      <rect x="0" y="1" width="3" height="1" fill="#90BFE0" opacity="0.85"/>
+      <rect x="1" y="1" width="1" height="1" fill="#FFFFFF"/>
+    </svg>`;
+
+    const SNOW_SETTLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="6" viewBox="0 0 6 3" shape-rendering="crispEdges">
+      <rect x="1" y="1" width="4" height="1" fill="#C2E2FA" opacity="0.8"/>
+      <rect x="0" y="2" width="6" height="1" fill="#90BFE0" opacity="0.55"/>
+    </svg>`;
+
+    const activeLeaves = [];
+    const activeWinds = [];
+    const activeDrops = [];
+    const activeCritters = [];
+    let rafId = null;
+
+    // Global wind gust state (0 = calm breeze, > 0 = active gust sweeping across)
+    let gustTimer = 0;
+    let gustDuration = 0;
+    let gustPeak = 0;
+
+    // Passing shower / snow squall state
+    let isRaining = false;
+    let rainTicksRemaining = 0;
+    let rainTotalTicks = 0;
+
+    function clearAllWeatherElements() {
+      while (activeLeaves.length > 0) {
+        const l = activeLeaves.pop();
+        if (l && l.el) l.el.remove();
+      }
+      while (activeWinds.length > 0) {
+        const w = activeWinds.pop();
+        if (w && w.el) w.el.remove();
+      }
+      while (activeDrops.length > 0) {
+        const d = activeDrops.pop();
+        if (d && d.el) d.el.remove();
+      }
+      while (activeCritters.length > 0) {
+        const c = activeCritters.pop();
+        if (c && c.el) c.el.remove();
+      }
+      gustTimer = 0;
+      isRaining = false;
+      rainTicksRemaining = 0;
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    }
+
+    function updateToggleButtonState() {
+      document.body.classList.toggle('season-winter', season === 'winter' && !weatherDisabled);
+      if (!toggleBtn) return;
+      if (weatherDisabled) {
+        toggleBtn.classList.add('weather-disabled');
+        toggleBtn.setAttribute('data-tooltip', 'Enable weather');
+        toggleBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        toggleBtn.classList.remove('weather-disabled');
+        toggleBtn.setAttribute('data-tooltip', 'Too cosy? Disable weather.');
+        toggleBtn.setAttribute('aria-pressed', 'false');
+      }
+    }
+
+    updateToggleButtonState();
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        weatherDisabled = !weatherDisabled;
+        localStorage.setItem('weather', weatherDisabled ? 'off' : 'on');
+        updateToggleButtonState();
+
+        if (weatherDisabled) {
+          clearAllWeatherElements();
+        } else {
+          triggerWindGust();
+        }
+      });
+    }
+
+    function ensureAnimationLoop() {
+      if (!rafId && !weatherDisabled) {
+        rafId = requestAnimationFrame(updateScene);
+      }
+    }
+
+    // Spawns seasonal drifting foliage/snow/blossom/meadow fluff
+    function spawnDrifter(fromGust) {
+      if (weatherDisabled || document.hidden || activeLeaves.length >= 8) return;
+
+      const el = document.createElement('div');
+      el.className = 'pixel-leaf';
+
+      const variant = Math.random() < 0.5 ? 0 : 1;
+      let isDandelion = false;
+
+      if (season === 'winter') {
+        const palette = WINTER_PALETTES[Math.floor(Math.random() * WINTER_PALETTES.length)];
+        const size = 10 + Math.floor(Math.random() * 5); // 10px - 14px dainty snowflake
+        el.innerHTML = createSnowflakeSVG(palette, variant, size);
+      } else if (season === 'spring') {
+        isDandelion = Math.random() < 0.35;
+        const palette = SPRING_PETAL_PALETTES[Math.floor(Math.random() * SPRING_PETAL_PALETTES.length)];
+        const size = isDandelion ? 16 + Math.floor(Math.random() * 5) : 13 + Math.floor(Math.random() * 6);
+        el.innerHTML = createSpringSVG(palette, isDandelion, size);
+      } else if (season === 'summer') {
+        // Summer: floating meadow fluff (dandelion seeds) & sunlit hedgerow green leaves
+        isDandelion = Math.random() < 0.55;
+        if (isDandelion) {
+          const size = 15 + Math.floor(Math.random() * 5);
+          el.innerHTML = createSpringSVG(null, true, size);
+        } else {
+          const palette = SUMMER_LEAF_PALETTES[Math.floor(Math.random() * SUMMER_LEAF_PALETTES.length)];
+          const size = 16 + Math.floor(Math.random() * 6);
+          el.innerHTML = createLeafSVG(palette, variant, size);
+        }
+      } else {
+        const palette = AUTUMN_PALETTES[Math.floor(Math.random() * AUTUMN_PALETTES.length)];
+        const size = 18 + Math.floor(Math.random() * 8); // 18px - 25px leaf
+        el.innerHTML = createLeafSVG(palette, variant, size);
+      }
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const startFromTop = !fromGust && (season === 'winter' ? Math.random() < 0.65 : Math.random() < 0.35);
+      const startX = startFromTop ? Math.random() * (vw * 0.75) : -32 - Math.random() * 40;
+      const startY = startFromTop ? -32 : Math.random() * (vh * 0.75);
+
+      const isSummer = season === 'summer';
+
+      const drifter = {
+        el,
+        x: startX,
+        y: startY,
+        vx: isDandelion
+          ? (isSummer ? 0.65 + Math.random() * 0.45 : 0.85 + Math.random() * 0.6)
+          : season === 'winter'
+            ? 0.65 + Math.random() * 0.75
+            : isSummer
+              ? 0.8 + Math.random() * 0.6
+              : 1.1 + Math.random() * 0.9,
+        vy: isDandelion
+          ? 0.1 + Math.random() * 0.22 // Meadow seeds barely sink and lift on gusts
+          : season === 'winter'
+            ? 0.55 + Math.random() * 0.65
+            : 0.4 + Math.random() * 0.5,
+        swayAmp: isDandelion ? 0.8 + Math.random() * 0.6 : 0.5 + Math.random() * 0.7,
+        swayFreq: 0.02 + Math.random() * 0.02,
+        phase: Math.random() * Math.PI * 2,
+        angle: isDandelion ? -10 + Math.random() * 20 : Math.random() * 360,
+        spinSpeed: isDandelion
+          ? 0
+          : (Math.random() < 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.8),
+        isDandelion,
+        gustWeight: isDandelion ? 1.35 : 0.8 + Math.random() * 0.5,
+        tick: 0
+      };
+
+      container.appendChild(el);
+      activeLeaves.push(drifter);
+      ensureAnimationLoop();
+    }
+
+    // Spawns a Norfolk Bishybarnabee (ladybird) in Summer
+    function spawnBishybarnabee() {
+      if (weatherDisabled || document.hidden || season !== 'summer' || activeCritters.length >= 2) return;
+
+      const el = document.createElement('div');
+      el.className = 'pixel-critter bishybarnabee';
+      el.innerHTML = createBishybarnabeeSVG();
+
+      const vh = window.innerHeight;
+      const startY = vh * 0.18 + Math.random() * (vh * 0.58);
+
+      const bishybarnabee = {
+        el,
+        x: -36,
+        y: startY,
+        baseY: startY,
+        vx: 1.65 + Math.random() * 0.65,
+        bobAmp: 10 + Math.random() * 9,
+        bobFreq: 0.055,
+        phase: Math.random() * Math.PI * 2,
+        flapInterval: 4,
+        tick: 0
+      };
+
+      container.appendChild(el);
+      activeCritters.push(bishybarnabee);
+      ensureAnimationLoop();
+    }
+
+    // Spawns a cute 2-frame animated pixel Bumblebee or Butterfly in Spring
+    function spawnSpringCritter() {
+      if (weatherDisabled || document.hidden || season !== 'spring' || activeCritters.length >= 2) return;
+
+      const el = document.createElement('div');
+      el.className = 'pixel-critter';
+      const isButterfly = Math.random() < 0.45;
+      el.innerHTML = createSpringCritterSVG(isButterfly);
+
+      const vh = window.innerHeight;
+      const startY = vh * 0.18 + Math.random() * (vh * 0.55);
+
+      const critter = {
+        el,
+        x: -36,
+        y: startY,
+        baseY: startY,
+        vx: isButterfly ? 1.5 + Math.random() * 0.7 : 2.1 + Math.random() * 0.8,
+        bobAmp: isButterfly ? 18 + Math.random() * 14 : 9 + Math.random() * 8,
+        bobFreq: isButterfly ? 0.045 : 0.075,
+        phase: Math.random() * Math.PI * 2,
+        flapInterval: isButterfly ? 9 : 4,
+        tick: 0
+      };
+
+      container.appendChild(el);
+      activeCritters.push(critter);
+      ensureAnimationLoop();
+    }
+
+    function spawnWindStreak(baseY) {
+      if (weatherDisabled || document.hidden || activeWinds.length >= 3) return;
+
+      const el = document.createElement('div');
+      el.className = 'pixel-wind';
+      const variant = Math.random() < 0.5 ? 0 : 1;
+      el.innerHTML = createWindSVG(variant);
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isSummer = season === 'summer';
+
+      const startX = -140 + Math.random() * (vw * 0.25);
+      const startY = baseY !== undefined ? baseY : vh * 0.15 + Math.random() * (vh * 0.65);
+
+      const wind = {
+        el,
+        x: startX,
+        y: startY,
+        vx: isSummer ? 4.2 + Math.random() * 1.6 : 5.5 + Math.random() * 2.5,
+        vy: -0.2 + Math.random() * 0.4,
+        peakOpacity: isSummer ? 0.24 : 0.38,
+        tick: 0,
+        maxTicks: isSummer ? 90 + Math.floor(Math.random() * 35) : 75 + Math.floor(Math.random() * 35)
+      };
+
+      container.appendChild(el);
+      activeWinds.push(wind);
+      ensureAnimationLoop();
+    }
+
+    // Spawns either a raindrop, a Summer golden sun-shower drop, or a Winter snow flurry particle
+    function spawnPrecipitation() {
+      const isSummer = season === 'summer';
+      const maxDrops = isSummer ? 20 : 45;
+      if (weatherDisabled || document.hidden || activeDrops.length >= maxDrops) return;
+
+      const el = document.createElement('div');
+      el.className = 'pixel-rain';
+      const isWinter = season === 'winter';
+      el.innerHTML = isWinter ? SNOW_PELLET_SVG : RAINDROP_SVG;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const startX = -80 + Math.random() * (vw + 100);
+      const startY = -25 - Math.random() * 40;
+      const splashY = vh * 0.78 + Math.random() * (vh * 0.21);
+
+      const drop = {
+        el,
+        x: startX,
+        y: startY,
+        vx: isWinter
+          ? 0.8 + Math.random() * 0.9
+          : isSummer
+            ? 1.3 + Math.random() * 0.6
+            : 1.8 + Math.random() * 0.8,
+        vy: isWinter
+          ? 2.4 + Math.random() * 1.6
+          : isSummer
+            ? 7.2 + Math.random() * 2.2
+            : 9.5 + Math.random() * 3.5,
+        swayPhase: Math.random() * Math.PI * 2,
+        isWinter,
+        isSummer,
+        splashY,
+        splashing: false,
+        splashTicks: 0
+      };
+
+      container.appendChild(el);
+      activeDrops.push(drop);
+    }
+
+    function triggerWindGust() {
+      if (weatherDisabled || document.hidden) return;
+
+      const isSummer = season === 'summer';
+      gustTimer = 1;
+      gustDuration = isSummer ? 130 + Math.floor(Math.random() * 45) : 110 + Math.floor(Math.random() * 45);
+      // Summer has a gentler, subtler breeze
+      gustPeak = isSummer ? 1.45 + Math.random() * 0.85 : 2.6 + Math.random() * 1.4;
+
+      const vh = window.innerHeight;
+      const gustLaneY = vh * 0.2 + Math.random() * (vh * 0.55);
+
+      spawnWindStreak(gustLaneY);
+      if (!isSummer && Math.random() < 0.65) {
+        setTimeout(() => spawnWindStreak(gustLaneY + (Math.random() * 120 - 60)), 180);
+      }
+
+      spawnDrifter(true);
+      if (Math.random() < (isSummer ? 0.45 : 0.75)) {
+        setTimeout(() => spawnDrifter(true), 220);
+      }
+      if (season === 'spring' && Math.random() < 0.55) {
+        setTimeout(() => spawnDrifter(true), 450);
+      }
+
+      ensureAnimationLoop();
+    }
+
+    function triggerShowerOrFlurry() {
+      if (weatherDisabled || document.hidden || isRaining) return;
+
+      isRaining = true;
+      // Summer sun-showers are brief, warm, and sparse (~5-7s vs ~10-15s)
+      rainTotalTicks =
+        season === 'summer'
+          ? 300 + Math.floor(Math.random() * 140)
+          : 600 + Math.floor(Math.random() * 300);
+      rainTicksRemaining = rainTotalTicks;
+
+      triggerWindGust();
+      ensureAnimationLoop();
+    }
+
+    function updateScene() {
+      if (weatherDisabled) {
+        rafId = null;
+        return;
+      }
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      let currentGustBoost = 0;
+      if (gustTimer > 0) {
+        gustTimer += 1;
+        const progress = gustTimer / gustDuration;
+        if (progress >= 1) {
+          gustTimer = 0;
+        } else {
+          currentGustBoost = Math.sin(progress * Math.PI) * gustPeak;
+        }
+      }
+
+      if (isRaining) {
+        rainTicksRemaining -= 1;
+        const rainProgress = 1 - rainTicksRemaining / rainTotalTicks;
+        const showerIntensity = Math.sin(rainProgress * Math.PI);
+
+        if (season === 'summer') {
+          // Sparser, lighter warm sun-shower
+          if (Math.random() < showerIntensity * 0.42) {
+            spawnPrecipitation();
+          }
+        } else if (Math.random() < showerIntensity * 0.85) {
+          spawnPrecipitation();
+          if (Math.random() < showerIntensity * 0.45) {
+            spawnPrecipitation();
+          }
+        }
+
+        if (rainTicksRemaining <= 0) {
+          isRaining = false;
+        }
+      }
+
+      for (let i = activeLeaves.length - 1; i >= 0; i--) {
+        const l = activeLeaves[i];
+        l.tick += 1;
+
+        const flutter = Math.sin(l.tick * l.swayFreq + l.phase);
+        const leafGust = currentGustBoost * l.gustWeight;
+        const downPush = isRaining ? (season === 'winter' ? 0.15 : 0.35) : 0;
+
+        l.x += l.vx + Math.max(0, flutter * 0.45) + leafGust;
+        // Dandelion seeds lift higher on wind gusts and pendulum-rock instead of spinning 360
+        const liftFactor = l.isDandelion ? 0.55 : 0.28;
+        l.y += l.vy + downPush + Math.cos(l.tick * l.swayFreq + l.phase) * l.swayAmp - leafGust * liftFactor;
+
+        if (l.isDandelion) {
+          l.angle = Math.sin(l.tick * 0.04 + l.phase) * 18 + leafGust * 8;
+        } else {
+          l.angle += l.spinSpeed + flutter * 0.6 + leafGust * 1.6;
+        }
+
+        const snappedAngle = Math.round(l.angle / 12) * 12;
+        l.el.style.transform = `translate3d(${Math.round(l.x)}px, ${Math.round(l.y)}px, 0) rotate(${snappedAngle}deg)`;
+
+        if (l.x > vw + 60 || l.y > vh + 60 || l.y < -80) {
+          l.el.remove();
+          activeLeaves.splice(i, 1);
+        }
+      }
+
+      // Update Spring bees/butterflies & Summer Bishybarnabees
+      for (let i = activeCritters.length - 1; i >= 0; i--) {
+        const c = activeCritters[i];
+        c.tick += 1;
+
+        if (c.tick % c.flapInterval === 0) {
+          c.el.classList.toggle('flap');
+        }
+
+        c.x += c.vx + currentGustBoost * 0.45;
+        c.baseY += Math.sin(c.tick * 0.015 + c.phase) * 0.25;
+        const bobOffset = Math.sin(c.tick * c.bobFreq + c.phase) * c.bobAmp;
+        c.y = c.baseY + bobOffset;
+
+        const tilt = Math.cos(c.tick * c.bobFreq + c.phase) * 10;
+        c.el.style.transform = `translate3d(${Math.round(c.x)}px, ${Math.round(c.y)}px, 0) rotate(${Math.round(tilt)}deg)`;
+
+        if (c.x > vw + 50) {
+          c.el.remove();
+          activeCritters.splice(i, 1);
+        }
+      }
+
+      for (let i = activeWinds.length - 1; i >= 0; i--) {
+        const w = activeWinds[i];
+        w.tick += 1;
+        w.x += w.vx;
+        w.y += w.vy + Math.sin(w.tick * 0.08) * 0.35;
+
+        const progress = w.tick / w.maxTicks;
+        const opacity = Math.sin(progress * Math.PI) * (w.peakOpacity || 0.38);
+
+        w.el.style.opacity = opacity.toFixed(2);
+        w.el.style.transform = `translate3d(${Math.round(w.x)}px, ${Math.round(w.y)}px, 0)`;
+
+        if (w.tick >= w.maxTicks || w.x > vw + 150) {
+          w.el.remove();
+          activeWinds.splice(i, 1);
+        }
+      }
+
+      for (let i = activeDrops.length - 1; i >= 0; i--) {
+        const d = activeDrops[i];
+        if (!d.splashing) {
+          const snowSway = d.isWinter ? Math.sin(d.y * 0.04 + d.swayPhase) * 0.6 : 0;
+          d.x += d.vx + snowSway + currentGustBoost * (d.isWinter ? 0.95 : 0.6);
+          d.y += d.vy;
+          d.el.style.transform = `translate3d(${Math.round(d.x)}px, ${Math.round(d.y)}px, 0)`;
+
+          if (d.y >= d.splashY) {
+            d.splashing = true;
+            d.el.innerHTML = d.isWinter
+              ? SNOW_SETTLE_SVG
+              : d.isSummer
+                ? SUNSHOWER_SPLASH_SVG
+                : SPLASH_SVG;
+          } else if (d.x > vw + 40 || d.y > vh + 40) {
+            d.el.remove();
+            activeDrops.splice(i, 1);
+          }
+        } else {
+          d.splashTicks += 1;
+          const maxSplashTicks = d.isWinter ? 24 : 10;
+          if (d.splashTicks >= maxSplashTicks) {
+            d.el.remove();
+            activeDrops.splice(i, 1);
+          }
+        }
+      }
+
+      if (
+        activeLeaves.length > 0 ||
+        activeWinds.length > 0 ||
+        activeDrops.length > 0 ||
+        activeCritters.length > 0 ||
+        gustTimer > 0 ||
+        isRaining
+      ) {
+        rafId = requestAnimationFrame(updateScene);
+      } else {
+        rafId = null;
+      }
+    }
+
+    function scheduleNextBreeze() {
+      const isSummer = season === 'summer';
+      const delay = isSummer ? 5200 + Math.random() * 4800 : 4000 + Math.random() * 4000;
+      setTimeout(() => {
+        if (!weatherDisabled) {
+          if (Math.random() < (isSummer ? 0.28 : 0.4)) {
+            triggerWindGust();
+          } else {
+            spawnDrifter(false);
+            if (Math.random() < 0.35) {
+              setTimeout(() => spawnDrifter(false), 600 + Math.random() * 900);
+            }
+          }
+          if (season === 'spring' && Math.random() < 0.35) {
+            spawnSpringCritter();
+          } else if (season === 'summer' && Math.random() < 0.4) {
+            spawnBishybarnabee();
+          }
+        }
+        scheduleNextBreeze();
+      }, delay);
+    }
+
+    function scheduleNextRainShower() {
+      // Summer rain is much less frequent (every ~50-80s vs ~20-30s)
+      const delay =
+        season === 'summer'
+          ? 50000 + Math.random() * 30000
+          : 20000 + Math.random() * 10000;
+      setTimeout(() => {
+        if (!weatherDisabled) {
+          triggerShowerOrFlurry();
+        }
+        scheduleNextRainShower();
+      }, delay);
+    }
+
+    // Initial welcoming breeze shortly after load
+    setTimeout(() => {
+      if (!weatherDisabled) {
+        triggerWindGust();
+        if (season === 'spring') {
+          setTimeout(spawnSpringCritter, 900);
+        } else if (season === 'summer') {
+          setTimeout(spawnBishybarnabee, 800);
+        }
+      }
+      scheduleNextBreeze();
+      scheduleNextRainShower();
+    }, 1500);
+  })();
+</script>
