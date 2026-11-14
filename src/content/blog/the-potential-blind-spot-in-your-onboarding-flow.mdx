@@ -1,0 +1,176 @@
+---
+title: "The Potential Blind Spot in Your Onboarding Flow"
+description: "How an innocent 'Send OTP' button turns your cloud budget into an automated money printer for overseas telecom syndicates - and how platform teams can shut it down."
+pubDate: 2026-11-14
+tags: ["cloud-security", "devsecops", "fraud", "infrastructure", "finops", "architecture"]
+---
+
+import Callout from '../../components/Callout.astro'
+import SideBySideTable from '../../components/SideBySideTable.astro'
+
+It's Monday morning, maybe 2:15 AM on a Saturday. You open Slack to find a message from your head of finance or engineering director consisting of three letters and an ungodly amount of question marks: *"Why is our comms bill up £X,000 this weekend???"*
+
+You scramble into your Twilio or AWS SNS console, fearing the worst. Did someone leak an API key on a public GitHub repo? Did something some how trigger the classic Lambda death spiral?
+
+Then you dig into the telemetry and find something much weirder: your production systems are completely intact. Nobody naughty gained access. No databases were dumped. Some function isn't talking itself to death. Instead, your well established user registration endpoint simply sent tens of thousands of one-time verification codes to the same subset of mobile phone numbers in a country where your application doesn't even have a single customer.
+
+You’ve just met A2P SMS Pumping - or Artificially Inflated Traffic (AIT) if you talk to telcos. It’s a multi-million-dollar racket. If you leave an unauthenticated phone input exposed anywhere on your public site, you are effectively underwriting automated fraud syndicates.
+
+<Callout title="// A QUICK PSA: REPORT IT TO OFCOM" colour="yellow">
+A quick note before we get stuck in: if your organisation has been on the receiving end of suspicious SMS traffic or rogue number ranges, don't just quietly swallow the bill and move on. Report it to **Ofcom** (or your country's equivalent regulatory body). Telecoms providers *do* face real penalties for turning a blind eye, with Ofcom recently [fining a provider £437,500](https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/telecoms-provider-fined-437500-for-failing-to-prevent-misuse-of-its-phone-numbers-by-scammers) for failing to prevent scammers from abusing its network and phone numbers.
+</Callout>
+
+## The Illusion vs. The Business Model
+
+When engineering teams implement phone verification, the reasoning seems bulletproof:
+
+<SideBySideTable
+  titleLeft="// THE ASSUMPTION"
+  contentLeft="Requiring an SMS one-time passcode (OTP) during signup stops bot registrations and proves a real human with a real phone is on the other end."
+  titleRight="// THE FINANCIAL REALITY"
+  contentRight="Your signup form is treated like a minting press by fraudsters, turning your SMS budget into a cash cow for rogue operators.">
+</SideBySideTable>
+
+To understand why anyone bothers, you have to look at the telecom routing racket. (We weirdly covered how coverage and interconnects work at uni, but I never expected to be auditing how a text actually travels from a web server to a radio mast a decade later).
+
+When your application sends an SMS message via a communications API, you pay a per-message fee. That fee isn't flat across the world; it varies wildly. Sending a text message domestically might cost a fraction of a penny ($0.007). But terminating an SMS on a regional mobile network in Latvia, Somalia, Zimbabwe, or certain Pacific island nations can cost upwards of **$0.25 to $0.50 per message**.
+
+That fee doesn't just disappear into thin air. It gets split across the intermediate routing chain: your SMS gateway provider, the wholesale transit aggregator, and the final terminating Mobile Network Operator (MNO).
+
+And that is where the hustle begins.
+
+## The Split: How Fraudsters and Rogue Telcos Cash Out
+
+SMS pumping isn't particularly clever. Nobody is exploiting a zero-day or dumping customer databases. It’s just old-fashioned telecom arbitrage with a bot strapped to the front of it.
+
+Here is what the machinery actually looks like behind the scenes[^1]:
+
+<div style="border: 1px solid #555; padding: 1.5rem 1.25rem; margin: 2rem 0; text-align: center;">
+  <div style="display: inline-block; border: 1px solid #555; padding: 8px 20px; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; background: rgba(128,128,128,0.1);">
+    THE A2P SMS PUMPING PIPELINE
+  </div>
+  <div style="width: 1px; height: 24px; background: #555; margin: 0 auto;"></div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 4px;">
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// STAGE 01</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">The Scout & The Farm</div>
+      <p style="font-size: 0.8rem; color: #aaa; margin: 0;">Bots or device farms probe web apps for exposed, unthrottled phone input fields.</p>
+    </div>
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// STAGE 02</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">The High-Rate Influx</div>
+      <p style="font-size: 0.8rem; color: #aaa; margin: 0;">Scripts start slow but soon begin ramping up - often targeting premium-rate ranges and high-interconnect carrier prefixes.</p>
+    </div>
+    <div style="border: 1px solid #555; padding: 1rem; text-align: left;">
+      <div style="color: #888; font-size: 0.75rem; margin-bottom: 4px;">// STAGE 03</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">The Revenue Kickback</div>
+      <p style="font-size: 0.8rem; color: #aaa; margin: 0;">A rogue party in the mobile ecosystem (an operator or aggregator) intercepts the message, but never actually delivers messages to the end user.</p>
+    </div>
+  </div>
+</div>
+
+### 1. The Deal
+A fraud syndicate strikes a commercial agreement with a rogue mobile network operator, virtual operator (MVNO), or intermediary aggregator. The operator has access to a block of telephone numbers.
+
+The deal is straightforward: *"Drive traffic to our number blocks, and we will split the termination fees with you."*
+
+### 2. The Rigging
+The fraudsters don't even need to invent complex zero-days. They write a lightweight script or spin up automated browser sessions.
+
+Beyond data centre scripts, attackers deploy physical device farms: racks of cheap Android phones hooked to multi-port USB hubs. These setups rotate proxies and cycle SIMs to mimic real devices, often paired with human solvers to bypass CAPTCHAs.
+
+### 3. The Execution
+The scripts target your public web (or mobile) application. Common vectors include:
+* User registration and signup flows.
+* Forgot Password and Reset PIN journeys.
+* Anything with Two-factor authentication (2FA) verification prompts.
+
+The bot scripts populate the phone input with numbers from their target carrier block, submit, and trigger an outbound OTP. They don't care what the 6-digit code is. Nobody is trying to log in. The message doesn't even need to be read; it simply needs to be delivered across the telecommunications interconnect so the billing meter runs.
+
+<Callout title="// QUICK MATHS">
+At 50,000 messages overnight at $0.05[^2] per message, a single night costs $2,500.
+
+If an attacker runs that scam just once a week, the annual hit is $130,000. If it goes unchecked and happens every single night, that single unthrottled endpoint racks up an eye-watering $912,500 a year in pure billing bleed.
+</Callout>
+
+Unlike traditional attacks, A2P fraud doesn’t crash your infrastructure or steal user data. The victim is your corporate balance sheet and attackers actively need your servers running smoothly so they can keep pumping traffic.
+
+In fact, if you trace through threat classification taxonomies like the OWASP Automated Threats framework[^3], A2P SMS pumping falls into a frustrating blind spot. It doesn't map neatly to classic vectors: OAT-019 Account Creation covers automated signups, but its intent is typically spam or resource hoarding rather than telecom billing arbitrage; OAT-015 Denial of Service covers resource exhaustion, but AIT doesn't crash your infrastructure. Quite the opposite - attackers actively need your application to run smoothly and respond instantly so they can keep pushing traffic through.
+## Why Traditional Defences Crumble
+
+When teams first encounter SMS pumping, their instinctive reactions often fail:
+
+* **"We have basic IP rate limiting."**  
+  Attackers route their traffic through proxy networks or cellular device farms with plenty of rotating IPs. If a single IP only sends one request every ten minutes, your standard per-IP rate limiter won't even bat an eyelid. And ultimately, even if you *are* rate limiting - this is very often inherently a slow-burn attack.
+
+* **"We added a standard CAPTCHA."**  
+  Modern CAPTCHA solving farms and automated vision models solve legacy image challenges for pennies per thousand. Have a Google you can find these services for yourself. If the fraudster makes $0.15 on every successful SMS and a CAPTCHA solver costs $0.002, solving your challenge is just a negligible cost of doing business.
+
+* **"Our provider handles fraud detection."**  
+  While vendors like Twilio or AWS have fraud-detection mechanisms, they operate in a difficult position. Because they make money on message volume, aggressive default blocking carries business risk for them. Provider protections are often opt-in, reactive, or only kick in after significant volume has already burned through your credit limit.
+
+## How to Shut It Down: The Platform Engineering Blueprint
+
+Stopping SMS pumping requires shifting from viewing phone verification as an isolated frontend widget to treating it as an expensive, authenticated financial transaction. 
+
+Here is how to lock it down (I'd love to hear if you're doing anything else):
+
+### 1. Move SMS to the Very End of the Funnel (Progressive Profiling)
+The biggest architectural sin in modern web apps is asking for a phone number on Step 1 of an anonymous registration form.
+
+If you don't know who a user is, do not give them access to an API endpoint that charges you every time it gets hit. Flip your onboarding flow:
+* Require a verified email address first.
+* Or require social auth / OAuth (Google, GitHub, Apple).
+* Or require profile completion before asking for MFA enrolment.
+
+By forcing the visitor to prove work or verify an email address *before* the SMS dispatch trigger is unlocked, you ruin the economic model for the fraudster. Scripting disposable email confirmations at scale creates friction that often causes attackers to immediately move on to an easier target.
+
+Of course, this one is a product trade-off: if your monitoring and incident response are fast enough to shut attacks down instantly, you might skip adding friction to onboarding.
+
+### 2. Low-Hanging Prevention Measures
+Before dispatching a paid SMS, run lightweight validation against the number to screen out abusive traffic before it ever hits your downstream provider [^4]:
+
+* **Geofence your routes ruthlessly:** If you only do business in the UK and Ireland, shut off global termination. There is zero reason for your application to be texting numbers in Tuvalu or Somalia.
+* **Bin VoIP and virtual numbers:** Services like Google Voice or TextNow are the default playground for this. Screen them out and restrict verification to genuine mobile lines (MNO-backed).
+* **Check the number actually exists:** Fraudsters often blast algorithmic sequences within a carrier's allocated block. Carrier lookups verify whether a number is active and assigned before you burn a full SMS charge on a dead terminal.
+* **Drop bad inputs at your own edge:** Don’t pay Twilio or AWS 5p just to tell you a phone number was formatted badly. If the string doesn’t match your allowed international regex (e.g., `^\+44` or `^\+1`) before it leaves your backend, drop it immediately.
+* **Put CAPTCHA on every public trigger:** Make sure every public-facing form that can fire an SMS sits behind a challenge—though don't rely on it alone.
+
+### 3. Look for Patterns
+
+Fraudsters spin up automated accounts with repetitive signatures: sequential user IDs, identical dummy names, or sudden spikes from unexpected country codes. Because sophisticated attackers distribute traffic across hundreds of rotating IPs and proxy networks, standard rate limits fail.
+
+<Callout title="// THE METADATA TELLS THE STORY" colour="yellow">
+In total isolation, every single request looks legitimate. To catch them, you have to look across the broader stream of traffic for anomalies:
+
+Standard WAF rules won't catch business-logic abuse, so you'll get far more mileage out of lightweight internal heuristics that flag structural anomalies—like 50 accounts registering with the same physical postcode in ten minutes, repetitive profile strings, or sudden surges to a single mobile carrier. Even if you aren't brave enough to turn on automated blocking rules straight away, get alerting wired up on those behavioural footprints first.
+</Callout>
+
+### 4. Hard Financial Circuit Breakers
+Just as you build circuit breakers for database pools and HTTP timeouts, you need the exact same pattern for your third-party billing APIs. Define your appetite for fraudulent loss and work with your business to:
+
+* **Cap your global velocity:** Put hard limits on total SMS dispatches per minute and per hour across your entire fleet.
+* **Wire up automated kill-switches:** If outbound SMS volume spikes by 300% above your rolling baseline, trip the breaker automatically. 
+
+When the circuit trips, the system does not have to break. Ideally it should gracefully degrade: fall back to email verification only, or prompt for secondary manual review while alerting the on-call engineer.
+
+Yes, throttling signups or dropping back to email-only verification for half an hour on a Sunday might annoy your product manager. But that’s a minor headache compared to explaining a five-figure AWS SNS bill to the CFO on Monday morning.
+
+---
+
+## Conclusion
+
+It is easy to look at an SMS verification input as a trivial checkbox on a sprint board - just wire up an SDK, drop in a button, and move on to the next feature.
+
+But the moment you expose an unauthenticated endpoint that converts an incoming HTTP POST into real-world fiat currency charges, you haven't just built a login helper. **You have built an open, unmetered API directly into your company’s bank account** (don't forget those Postcode Lookups, folks).
+
+Attackers know this. They don't need to break into your AWS VPC or exploit complex deserialisation vulnerabilities when they can simply get you to send hundreds of thousands of pointless messages to their shady telecom friends.
+
+Treat any endpoint that triggers a paid third-party API like an open cash register. Put a hard ceiling on your rate of spend, assume someone is eventually going to script against it, and lock down the pipes before your finance team comes knocking.
+
+---
+
+[^1]: National Cyber Security Centre Blog - [AIT-fraud-what-you-need-to-know](https://www.ncsc.gov.uk/blog-post/ait-fraud-what-you-need-to-know).
+[^2]: Cost of sending a single Transactional SMS in the UK - [AWS SNS Pricing](https://aws.amazon.com/sns/sms-pricing/)
+[^3]: [OWASP Automated Threats to Web Applications Chart](https://owasp.github.io/www-project-automated-threats-to-web-applications/assets/files/oat-ontology-decision-chart.pdf)
+[^4]: National Cyber Security Centre Advisory - [SMS Pumping](https://www.ncsc.gov.ie/pdfs/2506120143_SMS_Pumping.pdf)

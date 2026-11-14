@@ -1,12 +1,26 @@
 ---
 interface Props {
   title?: string;
+  colour?: 'red' | 'green' | 'yellow' | 'grey' | string;
+  color?: 'red' | 'green' | 'yellow' | 'grey' | string;
 }
 
-const { title = "// CALLOUT" } = Astro.props;
+const { title = "// CALLOUT", colour, color } = Astro.props;
+
+const selectedColour = (colour || color || 'red').toLowerCase();
+
+const colorMap: Record<string, string> = {
+  red: '#D10000',
+  green: '#34d100',
+  yellow: '#D19A00',
+  grey: '#888888',
+  gray: '#888888',
+};
+
+const accentColor = colorMap[selectedColour] || '#D10000';
 ---
 
-<div style="border: 1px solid #555; border-left: 3px solid #D10000; padding: 1.25rem 1.5rem; margin: 1.5rem 0;">
+<div style={`border: 1px solid #555; border-left: 3px solid ${accentColor}; padding: 1.25rem 1.5rem; margin: 1.5rem 0;`}>
   <div style="color: #888; font-size: 0.75rem; margin-bottom: 0.75rem;">{title}</div>
   <div style="font-size: 1.05rem; line-height: 1.7;">
     <slot />

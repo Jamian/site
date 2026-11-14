@@ -1,10 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { getReadingTime } from '../../utils/readingTime';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
+
+// Extract all unique tags across posts
+const allTags = Array.from(
+  new Set(posts.flatMap((post) => post.data.tags || []))
+).sort();
 ---
 
 <BaseLayout
@@ -29,24 +35,73 @@ const posts = (await getCollection('blog')).sort(
         </p>
     </div>
 
+    <!-- Search & Tag Filter Controls -->
+    <div class="blog-search-panel">
+        <div class="search-input-wrapper">
+            <span class="search-prompt" aria-hidden="true">&gt;</span>
+            <input
+                type="search"
+                id="blog-search-input"
+                class="blog-search-input"
+                placeholder="Search by keyword, topic, or #tag..."
+                aria-label="Search blog posts by keyword or tag"
+                autocomplete="off"
+            />
+        </div>
+
+        {allTags.length > 0 && (
+            <div class="tag-filter-bar" role="group" aria-label="Filter by tag">
+                <button type="button" class="tag-badge tag-filter-btn active" data-tag="">
+                    ALL
+                </button>
+                {allTags.map((tag) => (
+                    <button type="button" class="tag-badge tag-filter-btn" data-tag={tag.toLowerCase()}>
+                        #{tag}
+                    </button>
+                ))}
+            </div>
+        )}
+    </div>
+
     <section>
         {posts.length === 0 ? (
             <p>No posts published yet. Check back soon!</p>
         ) : (
-            <div style="display: flex; flex-direction: column; gap: 2rem;">
+            <div id="posts-list" style="display: flex; flex-direction: column; gap: 2rem;">
                 {posts.map((post) => {
                     const formattedDate = post.data.pubDate.toLocaleDateString('en-GB', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                     });
+                    const { minutes: readingTime } = getReadingTime(post.body);
+                    const tagsLower = (post.data.tags || []).map((t: string) => t.toLowerCase());
+                    const searchableText = [
+                        post.data.title,
+                        post.data.description,
+                        tagsLower.join(' '),
+                        (post.body || '').replace(/<[^>]+>/g, ' ')
+                    ].join(' ').toLowerCase();
 
                     return (
-                        <article style="border: 1px solid #555; padding: 1.5rem; transition: border-color 0.2s;">
+                        <article
+                            class="post-card"
+                            data-tags={tagsLower.join(',')}
+                            data-search={searchableText}
+                            style="border: 1px solid #555; padding: 1.5rem; transition: border-color 0.2s;"
+                        >
                             <div class="post-meta" style="margin-bottom: 0.5rem;">
                                 <time datetime={post.data.pubDate.toISOString()}>{formattedDate}</time>
+                                <span>&bull; {readingTime} min read</span>
                                 {post.data.tags && post.data.tags.map((tag: string) => (
-                                    <span class="tag-badge">#{tag}</span>
+                                    <button
+                                        type="button"
+                                        class="tag-badge card-tag-btn"
+                                        data-tag={tag.toLowerCase()}
+                                        title={`Filter by #${tag}`}
+                                    >
+                                        #{tag}
+                                    </button>
                                 ))}
                             </div>
                             
@@ -68,6 +123,13 @@ const posts = (await getCollection('blog')).sort(
                 })}
             </div>
         )}
+
+        <div id="no-results-message" style="display: none; border: 1px dashed #555; padding: 2rem; text-align: center; margin-top: 1rem;">
+            <p style="color: #888; margin-bottom: 1rem;">// No matching posts found.</p>
+            <button type="button" id="reset-search-btn" class="tag-badge tag-filter-btn" style="cursor: pointer; padding: 6px 14px;">
+                Reset filters
+            </button>
+        </div>
     </section>
 
     <div style="margin-top: 3rem; text-align: center;">
@@ -77,3 +139,169 @@ const posts = (await getCollection('blog')).sort(
     </div>
 </BaseLayout>
 
+<style>
+    .blog-search-panel {
+        margin-bottom: 2rem;
+        border: 1px solid #555;
+        padding: 1rem 1.25rem;
+    }
+
+    .search-input-wrapper {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #555;
+        padding-bottom: 0.6rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .search-prompt {
+        font-weight: 700;
+        color: #888;
+        margin-right: 0.6rem;
+        user-select: none;
+    }
+
+    .blog-search-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 0.9rem;
+        outline: none;
+    }
+
+    .blog-search-input::placeholder {
+        color: #777;
+    }
+
+    .tag-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tag-filter-btn,
+    .card-tag-btn {
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .tag-filter-btn:hover,
+    .card-tag-btn:hover {
+        border-color: currentColor;
+        background-color: rgba(128, 128, 128, 0.15);
+    }
+
+    .tag-filter-btn.active {
+        background-color: #0A0A0A;
+        color: #EAEAEA;
+        border-color: #0A0A0A;
+    }
+
+    :global(.dark-mode) .tag-filter-btn.active {
+        background-color: #EAEAEA;
+        color: #0A0A0A;
+        border-color: #EAEAEA;
+    }
+</style>
+
+<script is:inline>
+    (function () {
+        const searchInput = document.getElementById('blog-search-input');
+        const filterBtns = Array.from(document.querySelectorAll('.tag-filter-btn[data-tag]'));
+        const cardTagBtns = Array.from(document.querySelectorAll('.card-tag-btn'));
+        const postCards = Array.from(document.querySelectorAll('.post-card'));
+        const noResults = document.getElementById('no-results-message');
+        const resetBtn = document.getElementById('reset-search-btn');
+
+        let activeTag = '';
+        let searchQuery = '';
+
+        function updateFilterUI() {
+            filterBtns.forEach((btn) => {
+                const btnTag = btn.getAttribute('data-tag') || '';
+                if (btnTag === activeTag) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const queryTerms = searchQuery
+                .toLowerCase()
+                .replace(/#/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+
+            let visibleCount = 0;
+
+            postCards.forEach((card) => {
+                const cardTags = (card.getAttribute('data-tags') || '').split(',');
+                const cardSearch = card.getAttribute('data-search') || '';
+
+                const matchesTag = !activeTag || cardTags.includes(activeTag);
+                const matchesQuery =
+                    queryTerms.length === 0 ||
+                    queryTerms.every((term) => cardSearch.includes(term));
+
+                if (matchesTag && matchesQuery) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (noResults) {
+                noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            }
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value || '';
+                updateFilterUI();
+            });
+        }
+
+        filterBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const clickedTag = btn.getAttribute('data-tag') || '';
+                activeTag = activeTag === clickedTag && clickedTag !== '' ? '' : clickedTag;
+                updateFilterUI();
+            });
+        });
+
+        cardTagBtns.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const clickedTag = btn.getAttribute('data-tag') || '';
+                activeTag = activeTag === clickedTag ? '' : clickedTag;
+                updateFilterUI();
+            });
+        });
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                activeTag = '';
+                searchQuery = '';
+                if (searchInput) searchInput.value = '';
+                updateFilterUI();
+            });
+        }
+
+        // Support URL query params e.g. /blog/?tag=devsecops or /blog/?q=sms
+        const params = new URLSearchParams(window.location.search);
+        const initialTag = (params.get('tag') || '').toLowerCase();
+        const initialQuery = params.get('q') || '';
+        if (initialTag || initialQuery) {
+            activeTag = initialTag;
+            searchQuery = initialQuery;
+            if (searchInput && initialQuery) {
+                searchInput.value = initialQuery;
+            }
+            updateFilterUI();
+        }
+    })();
+</script>
