@@ -109,7 +109,7 @@ When teams first encounter SMS pumping, their instinctive reactions often fail:
 * **"Our provider handles fraud detection."**  
   While vendors like Twilio or AWS have fraud-detection mechanisms, they operate in a difficult position. Because they make money on message volume, aggressive default blocking carries business risk for them. Provider protections are often opt-in, reactive, or only kick in after significant volume has already burned through your credit limit.
 
-## How to Shut It Down: The Platform Engineering Blueprint
+## How to Shut It Down
 
 Stopping SMS pumping requires shifting from viewing phone verification as an isolated frontend widget to treating it as an expensive, authenticated financial transaction. 
 
@@ -133,8 +133,8 @@ Before dispatching a paid SMS, run lightweight validation against the number to 
 * **Geofence your routes ruthlessly:** If you only do business in the UK and Ireland, shut off global termination. There is zero reason for your application to be texting numbers in Tuvalu or Somalia.
 * **Bin VoIP and virtual numbers:** Services like Google Voice or TextNow are the default playground for this. Screen them out and restrict verification to genuine mobile lines (MNO-backed).
 * **Check the number actually exists:** Fraudsters often blast algorithmic sequences within a carrier's allocated block. Carrier lookups verify whether a number is active and assigned before you burn a full SMS charge on a dead terminal.
-* **Drop bad inputs at your own edge:** Don’t pay Twilio or AWS 5p just to tell you a phone number was formatted badly. If the string doesn’t match your allowed international regex (e.g., `^\+44` or `^\+1`) before it leaves your backend, drop it immediately.
-* **Put CAPTCHA on every public trigger:** Make sure every public-facing form that can fire an SMS sits behind a challenge—though don't rely on it alone.
+* **Drop bad inputs at your own edge:** Don’t pay Twilio or AWS just to tell you a phone number was formatted badly. If the string doesn’t match your allowed international regex (e.g., `^\+44` or `^\+1`) before it leaves your backend, drop it immediately.
+* **Put CAPTCHA on every public trigger:** Make sure every public-facing form that can fire an SMS sits behind a challenge - though don't rely on it alone.
 
 ### 3. Look for Patterns
 
