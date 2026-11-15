@@ -76,11 +76,15 @@ const allTags = Array.from(
                     });
                     const { minutes: readingTime } = getReadingTime(post.body);
                     const tagsLower = (post.data.tags || []).map((t: string) => t.toLowerCase());
+                    const headings = Array.from(
+                        (post.body || '').matchAll(/^#{1,4}\s+(.+)$/gm),
+                        (m) => m[1]
+                    ).join(' ');
                     const searchableText = [
                         post.data.title,
                         post.data.description,
                         tagsLower.join(' '),
-                        (post.body || '').replace(/<[^>]+>/g, ' ')
+                        headings
                     ].join(' ').toLowerCase();
 
                     return (
@@ -137,6 +141,107 @@ const allTags = Array.from(
             RSS Feed
         </a>
     </div>
+
+    <script>
+        // @ts-nocheck
+        (function () {
+            const searchInput = document.getElementById('blog-search-input');
+            const filterBtns = Array.from(document.querySelectorAll('.tag-filter-btn[data-tag]'));
+            const cardTagBtns = Array.from(document.querySelectorAll('.card-tag-btn'));
+            const postCards = Array.from(document.querySelectorAll('.post-card'));
+            const noResults = document.getElementById('no-results-message');
+            const resetBtn = document.getElementById('reset-search-btn');
+
+            let activeTag = '';
+            let searchQuery = '';
+
+            function updateFilterUI() {
+                filterBtns.forEach((btn) => {
+                    const btnTag = btn.getAttribute('data-tag') || '';
+                    if (btnTag === activeTag) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                const queryTerms = searchQuery
+                    .toLowerCase()
+                    .replace(/#/g, '')
+                    .trim()
+                    .split(/\s+/)
+                    .filter(Boolean);
+
+                let visibleCount = 0;
+
+                postCards.forEach((card) => {
+                    const cardTags = (card.getAttribute('data-tags') || '').split(',');
+                    const cardSearch = card.getAttribute('data-search') || '';
+
+                    const matchesTag = !activeTag || cardTags.includes(activeTag);
+                    const matchesQuery =
+                        queryTerms.length === 0 ||
+                        queryTerms.every((term) => cardSearch.includes(term));
+
+                    if (matchesTag && matchesQuery) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (noResults) {
+                    noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchQuery = e.target.value || '';
+                    updateFilterUI();
+                });
+            }
+
+            filterBtns.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const clickedTag = btn.getAttribute('data-tag') || '';
+                    activeTag = activeTag === clickedTag && clickedTag !== '' ? '' : clickedTag;
+                    updateFilterUI();
+                });
+            });
+
+            cardTagBtns.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const clickedTag = btn.getAttribute('data-tag') || '';
+                    activeTag = activeTag === clickedTag ? '' : clickedTag;
+                    updateFilterUI();
+                });
+            });
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    activeTag = '';
+                    searchQuery = '';
+                    if (searchInput) searchInput.value = '';
+                    updateFilterUI();
+                });
+            }
+
+            // Support URL query params e.g. /blog/?tag=devsecops or /blog/?q=sms
+            const params = new URLSearchParams(window.location.search);
+            const initialTag = (params.get('tag') || '').toLowerCase();
+            const initialQuery = params.get('q') || '';
+            if (initialTag || initialQuery) {
+                activeTag = initialTag;
+                searchQuery = initialQuery;
+                if (searchInput && initialQuery) {
+                    searchInput.value = initialQuery;
+                }
+                updateFilterUI();
+            }
+        })();
+    </script>
 </BaseLayout>
 
 <style>
@@ -205,103 +310,3 @@ const allTags = Array.from(
         border-color: #EAEAEA;
     }
 </style>
-
-<script is:inline>
-    (function () {
-        const searchInput = document.getElementById('blog-search-input');
-        const filterBtns = Array.from(document.querySelectorAll('.tag-filter-btn[data-tag]'));
-        const cardTagBtns = Array.from(document.querySelectorAll('.card-tag-btn'));
-        const postCards = Array.from(document.querySelectorAll('.post-card'));
-        const noResults = document.getElementById('no-results-message');
-        const resetBtn = document.getElementById('reset-search-btn');
-
-        let activeTag = '';
-        let searchQuery = '';
-
-        function updateFilterUI() {
-            filterBtns.forEach((btn) => {
-                const btnTag = btn.getAttribute('data-tag') || '';
-                if (btnTag === activeTag) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-
-            const queryTerms = searchQuery
-                .toLowerCase()
-                .replace(/#/g, '')
-                .trim()
-                .split(/\s+/)
-                .filter(Boolean);
-
-            let visibleCount = 0;
-
-            postCards.forEach((card) => {
-                const cardTags = (card.getAttribute('data-tags') || '').split(',');
-                const cardSearch = card.getAttribute('data-search') || '';
-
-                const matchesTag = !activeTag || cardTags.includes(activeTag);
-                const matchesQuery =
-                    queryTerms.length === 0 ||
-                    queryTerms.every((term) => cardSearch.includes(term));
-
-                if (matchesTag && matchesQuery) {
-                    card.style.display = '';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            if (noResults) {
-                noResults.style.display = visibleCount === 0 ? 'block' : 'none';
-            }
-        }
-
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                searchQuery = e.target.value || '';
-                updateFilterUI();
-            });
-        }
-
-        filterBtns.forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const clickedTag = btn.getAttribute('data-tag') || '';
-                activeTag = activeTag === clickedTag && clickedTag !== '' ? '' : clickedTag;
-                updateFilterUI();
-            });
-        });
-
-        cardTagBtns.forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const clickedTag = btn.getAttribute('data-tag') || '';
-                activeTag = activeTag === clickedTag ? '' : clickedTag;
-                updateFilterUI();
-            });
-        });
-
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                activeTag = '';
-                searchQuery = '';
-                if (searchInput) searchInput.value = '';
-                updateFilterUI();
-            });
-        }
-
-        // Support URL query params e.g. /blog/?tag=devsecops or /blog/?q=sms
-        const params = new URLSearchParams(window.location.search);
-        const initialTag = (params.get('tag') || '').toLowerCase();
-        const initialQuery = params.get('q') || '';
-        if (initialTag || initialQuery) {
-            activeTag = initialTag;
-            searchQuery = initialQuery;
-            if (searchInput && initialQuery) {
-                searchInput.value = initialQuery;
-            }
-            updateFilterUI();
-        }
-    })();
-</script>

@@ -112,7 +112,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://jamieian
     </script>
 </head>
 <body>
-    <SeasonalVibes />
+    <script is:inline>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    </script>
     <button class="mode-toggle" aria-label="Toggle dark and light mode">
         <div class="mode-toggle-icon"></div>
     </button>
@@ -126,6 +130,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || "https://jamieian
         </footer>
 
     </main>
+
+    <SeasonalVibes />
 
     <script is:inline>
         const body = document.body;
